@@ -194,7 +194,7 @@ fn spawn_player(
         SpriteSheetBundle {
             texture_atlas: texture_atlas.add(atlas),
             transform: Transform {
-                translation: Vec3::new(0.0, 0.0, 3.0),
+                translation: Vec3::new(-1000.0, 0.0, 3.0),
                 scale: Vec3::splat(1.),
                 ..default()
             },
@@ -208,14 +208,8 @@ fn spawn_ai_players(
     mut texture_atlas: ResMut<Assets<TextureAtlas>>,
     asset_server: Res<AssetServer>,
 ) {
-    let atlas = TextureAtlas::from_grid(
-        asset_server.load("kenney_racing-pack/PNG/Cars/car_blue_1.png"),
-        Vec2::new(70., 121.),
-        1,
-        1,
-        None,
-        None,
-    );
+    let handle = asset_server.load("kenney_racing-pack/PNG/Cars/car_blue_1.png");
+    let atlas = TextureAtlas::from_grid(handle, Vec2::new(70., 121.), 1, 1, None, None);
 
     commands.spawn((
         Racer,
@@ -225,6 +219,40 @@ fn spawn_ai_players(
             texture_atlas: texture_atlas.add(atlas),
             transform: Transform {
                 translation: Vec3::new(0.0, 0.0, 2.0),
+                scale: Vec3::splat(1.),
+                ..default()
+            },
+            ..default()
+        },
+    ));
+
+    let handle = asset_server.load("kenney_racing-pack/PNG/Cars/car_yellow_3.png");
+    let atlas = TextureAtlas::from_grid(handle, Vec2::new(70., 121.), 1, 1, None, None);
+    commands.spawn((
+        Racer,
+        Angle(0.0),
+        Velocity(Vec2::new(0.0, 20.0)),
+        SpriteSheetBundle {
+            texture_atlas: texture_atlas.add(atlas),
+            transform: Transform {
+                translation: Vec3::new(-333.3, 0.0, 2.0),
+                scale: Vec3::splat(1.),
+                ..default()
+            },
+            ..default()
+        },
+    ));
+
+    let handle = asset_server.load("kenney_racing-pack/PNG/Cars/car_green_4.png");
+    let atlas = TextureAtlas::from_grid(handle, Vec2::new(70., 121.), 1, 1, None, None);
+    commands.spawn((
+        Racer,
+        Angle(0.0),
+        Velocity(Vec2::new(0.0, 20.0)),
+        SpriteSheetBundle {
+            texture_atlas: texture_atlas.add(atlas),
+            transform: Transform {
+                translation: Vec3::new(-666.6, 0.0, 2.0),
                 scale: Vec3::splat(1.),
                 ..default()
             },
