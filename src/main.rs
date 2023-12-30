@@ -21,7 +21,10 @@ fn main() {
         ))
         .add_plugins((TilemapPlugin, helpers::tiled::TiledMapPlugin))
         .insert_resource(ClearColor(Color::rgb(0.153, 0.682, 0.376)))
-        .add_systems(Startup, (load_maps, spawn_camera, spawn_racer))
+        .add_systems(
+            Startup,
+            (load_maps, spawn_camera, spawn_player, spawn_ai_players),
+        )
         .add_systems(
             Update,
             (
@@ -74,7 +77,7 @@ fn spawn_camera(mut commands: Commands) {
 }
 
 fn load_maps(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let map_handle: Handle<helpers::tiled::TiledMap> = asset_server.load("level1-full.tmx");
+    let map_handle: Handle<helpers::tiled::TiledMap> = asset_server.load("level1.tmx");
 
     commands.spawn(helpers::tiled::TiledMapBundle {
         tiled_map: map_handle,
@@ -167,7 +170,7 @@ fn generate_guidance_field(
     }
 }
 
-fn spawn_racer(
+fn spawn_player(
     mut commands: Commands,
     mut texture_atlas: ResMut<Assets<TextureAtlas>>,
     asset_server: Res<AssetServer>,
@@ -183,6 +186,37 @@ fn spawn_racer(
 
     commands.spawn((
         Player,
+        Racer,
+        Angle(0.0),
+        Velocity(Vec2::new(0.0, 20.0)),
+        SpriteSheetBundle {
+            texture_atlas: texture_atlas.add(atlas),
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 3.0),
+                scale: Vec3::splat(1.),
+                ..default()
+            },
+            ..default()
+        },
+    ));
+}
+
+fn spawn_ai_players(
+    mut commands: Commands,
+    mut texture_atlas: ResMut<Assets<TextureAtlas>>,
+    asset_server: Res<AssetServer>,
+) {
+    let atlas = TextureAtlas::from_grid(
+        asset_server.load("kenney_racing-pack/PNG/Cars/car_blue_1.png"),
+        Vec2::new(70., 121.),
+        1,
+        1,
+        None,
+        None,
+    );
+
+    commands.spawn((
+        Racer,
         Angle(0.0),
         Velocity(Vec2::new(0.0, 20.0)),
         SpriteSheetBundle {
@@ -235,7 +269,13 @@ fn handle_keyboard(
 }
 
 fn handle_ai_players(
-    mut query: Query<(&mut Angle, &mut Velocity, &mut Transform, With<Player>)>,
+    mut query: Query<(
+        &mut Angle,
+        &mut Velocity,
+        &mut Transform,
+        With<Racer>,
+        Without<Player>,
+    )>,
     time: Res<Time>,
     guide: Option<Res<GuidanceField>>,
 ) {
@@ -246,7 +286,7 @@ fn handle_ai_players(
 
     let delta = time.delta_seconds();
 
-    for (mut a, mut v, mut t, _) in query.iter_mut() {
+    for (mut a, mut v, mut t, _, _) in query.iter_mut() {
         let pos = Vec2::new(t.translation.x, t.translation.y);
 
         let left_whisker = pos + (240.0 * Vec2::from_angle(a.0 + (PI / 8.)));
