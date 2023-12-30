@@ -19,8 +19,10 @@ fn main() {
             }),
             bevy_editor_pls::prelude::EditorPlugin::default(),
         ))
+        .register_type::<Angle>()
+        .register_type::<Velocity>()
         .add_plugins((TilemapPlugin, helpers::tiled::TiledMapPlugin))
-        .insert_resource(ClearColor(Color::rgb(0.153, 0.682, 0.376)))
+        .insert_resource(ClearColor(Color::rgb(0.053, 0.782, 0.276)))
         .add_systems(
             Startup,
             (load_maps, spawn_camera, spawn_player, spawn_ai_players),
@@ -48,10 +50,10 @@ struct Racer;
 #[derive(Component, Default, Debug)]
 struct Track;
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Reflect)]
 struct Velocity(Vec2);
 
-#[derive(Component, Clone, Debug)]
+#[derive(Component, Clone, Debug, Reflect)]
 struct Angle(f32);
 
 impl Angle {
