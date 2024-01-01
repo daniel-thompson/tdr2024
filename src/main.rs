@@ -1,6 +1,12 @@
-use bevy::{prelude::*, render::camera::ScalingMode, window};
+use bevy::{
+    math::{vec2, vec3},
+    prelude::*,
+    render::camera::ScalingMode,
+    window,
+};
 use bevy_ecs_tilemap::prelude::*;
 use itertools::Itertools;
+use slicetools::*;
 use std::f32::consts::PI;
 
 mod helpers;
@@ -34,8 +40,9 @@ fn main() {
                 handle_ai_players,
                 apply_friction,
                 apply_velocity,
-                track_player,
+                track_player.after(apply_velocity),
                 generate_guidance_field,
+                collision_detection,
             ),
         )
         .run();
@@ -276,6 +283,107 @@ fn apply_velocity(mut query: Query<(&Velocity, &mut Transform)>, time: Res<Time>
     }
 }
 
+struct CollisionBox {
+    points: [Vec2; 4],
+}
+
+fn same_side(p1: Vec2, p2: Vec2, line: (Vec2, Vec2)) -> bool {
+    let p1 = Vec3::from((p1, 0.0));
+    let p2 = Vec3::from((p2, 0.0));
+    let line = (Vec3::from((line.0, 0.0)), Vec3::from((line.1, 0.0)));
+
+    let cp1 = (line.1 - line.0).cross(p1 - line.0);
+    let cp2 = (line.1 - line.0).cross(p2 - line.0);
+
+    cp1.dot(cp2) >= 0.0
+}
+
+fn point_in_polygon(pt: Vec2, shape: &[Vec2]) -> bool {
+    let n = shape.len();
+    shape
+        .windows(3)
+        .chain(std::iter::once(
+            [shape[n - 2], shape[n - 1], shape[0]].as_slice(),
+        ))
+        .chain(std::iter::once(
+            [shape[n - 1], shape[0], shape[1]].as_slice(),
+        ))
+        .all(|x| same_side(pt, x[0], (x[1], x[2])))
+}
+
+fn point_in_rectangle(pt: Vec2, shape: &[Vec2]) -> bool {
+    same_side(pt, shape[2], (shape[0], shape[1]))
+        && same_side(pt, shape[3], (shape[1], shape[2]))
+        && same_side(pt, shape[0], (shape[2], shape[3]))
+        && same_side(pt, shape[1], (shape[3], shape[0]))
+}
+
+impl CollisionBox {
+    fn from_transform(tf: &Transform, sz: &Vec2) -> Self {
+        let sz3 = Vec3::from((*sz * 0.5, 0.0));
+        let tr = tf.transform_point(sz3);
+        let tl = tf.transform_point(vec3(-sz3.x, sz3.y, 0.0));
+        let bl = tf.transform_point(vec3(-sz3.x, -sz3.y, 0.0));
+        let br = tf.transform_point(vec3(sz3.x, -sz3.y, 0.0));
+
+        Self {
+            points: [
+                vec2(tr.x, tr.y),
+                vec2(br.x, br.y),
+                vec2(bl.x, bl.y),
+                vec2(tl.x, tl.y),
+            ],
+        }
+    }
+
+    /// Test whether two rectangles are touching
+    ///
+    /// Two rectangles do *not* touch if all four points of one rectangle
+    /// do not cross any of the lines made by the other rectangles.
+    fn is_touching(&self, other: &CollisionBox) -> bool {
+        other
+            .points
+            .iter()
+            .any(|pt| point_in_polygon(*pt, &self.points))
+    }
+}
+
+fn collision_detection(
+    mut query: Query<(&mut Transform, &Handle<TextureAtlas>, &mut Velocity)>,
+    texture_atlases: Res<Assets<TextureAtlas>>,
+) {
+    let mut colliders = query.iter_mut().collect::<Vec<_>>();
+    let mut it = colliders.pairs_mut();
+    while let Some((a, b)) = it.next() {
+        let atx = match texture_atlases.get(a.1) {
+            Some(tx) => tx,
+            None => continue,
+        };
+        let btx = match texture_atlases.get(b.1) {
+            Some(tx) => tx,
+            None => continue,
+        };
+
+        let mut abox = CollisionBox::from_transform(&a.0, &atx.size);
+        let mut bbox = CollisionBox::from_transform(&b.0, &btx.size);
+
+        if abox.is_touching(&bbox) {
+            std::mem::swap(&mut a.2 .0, &mut b.2 .0);
+
+            let a2 = vec2(a.0.translation.x, a.0.translation.y);
+            let b2 = vec2(b.0.translation.x, b.0.translation.y);
+            let nudge = Vec3::from(((b2 - a2).normalize() * 0.5, 0.0));
+            while abox.is_touching(&bbox) {
+                a.0.translation -= nudge;
+                b.0.translation += nudge;
+
+                abox = CollisionBox::from_transform(&a.0, &atx.size);
+                bbox = CollisionBox::from_transform(&b.0, &btx.size);
+            }
+        }
+    }
+}
+
 fn handle_keyboard(
     mut query: Query<(&mut Angle, &mut Velocity, &mut Transform, With<Player>)>,
     time: Res<Time>,
@@ -290,8 +398,8 @@ fn handle_keyboard(
     if input.pressed(KeyCode::X) {
         a.0 -= delta * 3.0;
     }
-    if input.pressed(KeyCode::ShiftRight) {
-        v.0 += delta * 400.0 * Vec2::from_angle(a.0);
+    if input.pressed(KeyCode::ShiftRight) || input.pressed(KeyCode::ShiftLeft) {
+        v.0 += delta * 700.0 * Vec2::from_angle(a.0);
     }
 
     a.normalize();
@@ -319,19 +427,28 @@ fn handle_ai_players(
     for (mut a, mut v, mut t, _, _) in query.iter_mut() {
         let pos = Vec2::new(t.translation.x, t.translation.y);
 
-        let left_whisker = pos + (240.0 * Vec2::from_angle(a.0 + (PI / 8.)));
+        let left_whisker = pos + (450.0 * Vec2::from_angle(a.0 + (PI / 12.)));
         let left_pixel = guide.get(&left_whisker);
-        let right_whisker = pos + (240.0 * Vec2::from_angle(a.0 - (PI / 8.)));
+        let right_whisker = pos + (450.0 * Vec2::from_angle(a.0 - (PI / 12.)));
         let right_pixel = guide.get(&right_whisker);
 
-        if (left_pixel - 10) > right_pixel {
+        let left_whisker2 = pos + (200.0 * Vec2::from_angle(a.0 + (PI / 6.)));
+        let left_pixel2 = guide.get(&left_whisker2);
+        let right_whisker2 = pos + (200.0 * Vec2::from_angle(a.0 - (PI / 6.)));
+        let right_pixel2 = guide.get(&right_whisker2);
+
+        let front_whisker = pos + (400.0 * Vec2::from_angle(a.0));
+        let front_pixel = guide.get(&front_whisker);
+
+        if ((left_pixel - 10) > right_pixel) || ((left_pixel2 - 10) > right_pixel2) {
             a.0 += delta * 3.0;
         }
-        if (right_pixel - 10) > left_pixel {
+        if ((right_pixel - 10) > left_pixel) || ((right_pixel2 - 10) > left_pixel2) {
             a.0 -= delta * 3.0;
         }
-        if true {
-            v.0 += delta * 400.0 * Vec2::from_angle(a.0);
+
+        if front_pixel > 50 {
+            v.0 += delta * 600.0 * Vec2::from_angle(a.0);
         }
 
         a.normalize();

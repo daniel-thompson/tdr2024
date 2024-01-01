@@ -413,6 +413,7 @@ dependencies = [
  "bevy_editor_pls",
  "image",
  "itertools",
+ "slicetools",
  "thiserror",
  "tiled",
 ]
@@ -3454,6 +3455,12 @@ checksum = "8f92a496fb766b417c996b9c5e57daf2f7ad3b0bebe1ccfca4856390e3d3bb67"
 dependencies = [
  "autocfg",
 ]
+
+[[package]]
+name = "slicetools"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d04907d5bd23c937bf5f6de4a1ce43a180cd8989446110ffc16be3287acc350"
 
 [[package]]
 name = "slotmap"
