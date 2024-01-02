@@ -402,7 +402,7 @@ fn handle_keyboard(
         a.0 -= delta * 3.0;
     }
     if input.pressed(KeyCode::ShiftRight) || input.pressed(KeyCode::ShiftLeft) {
-        v.0 += delta * 700.0 * Vec2::from_angle(a.0);
+        v.0 += delta * 580.0 * Vec2::from_angle(a.0);
     }
 
     a.normalize();
