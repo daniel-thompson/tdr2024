@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2023-2024 Daniel Thompson
+
 use bevy::{
     math::{vec2, vec3},
     prelude::*,
