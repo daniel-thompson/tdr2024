@@ -405,20 +405,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy-racer"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy_ecs_tilemap",
- "bevy_editor_pls",
- "image",
- "itertools",
- "slicetools",
- "thiserror",
- "tiled",
-]
-
-[[package]]
 name = "bevy_a11y"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3563,6 +3549,20 @@ dependencies = [
  "grid",
  "num-traits",
  "slotmap",
+]
+
+[[package]]
+name = "tdr2024"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy_ecs_tilemap",
+ "bevy_editor_pls",
+ "image",
+ "itertools",
+ "slicetools",
+ "thiserror",
+ "tiled",
 ]
 
 [[package]]
