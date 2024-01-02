@@ -5,7 +5,10 @@ Introduction
 ------------
 
 TDR2024 is a simple car racing game. It is written in Rust using the
-bevy game engine.
+bevy game engine
+
+<video src="https://github.com/daniel-thompson/tdr2024/assets/3185928/af0ebf8c-9a1e-4db7-9de9-3b94660ae6de" controls="controls" style="max-width: 600px;">
+</video>
 
 It is not finished.
 
