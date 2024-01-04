@@ -359,11 +359,19 @@ impl CollisionBox {
                 .iter()
                 .any(|pt| point_in_polygon(*pt, &other.points))
     }
+
+    fn draw(&self, gizmos: &mut Gizmos) {
+        for w in self.points.windows(2) {
+            gizmos.line_2d(w[0], w[1], Color::BLUE);
+        }
+        gizmos.line_2d(self.points[7], self.points[0], Color::BLUE);
+    }
 }
 
 fn collision_detection(
     mut query: Query<(&mut Transform, &Handle<TextureAtlas>, &mut Velocity)>,
     texture_atlases: Res<Assets<TextureAtlas>>,
+    mut gizmos: Gizmos,
 ) {
     let mut colliders = query.iter_mut().collect::<Vec<_>>();
     let mut it = colliders.pairs_mut();
@@ -379,6 +387,10 @@ fn collision_detection(
 
         let mut abox = CollisionBox::from_transform(&a.0, &atx.size);
         let mut bbox = CollisionBox::from_transform(&b.0, &btx.size);
+        if false {
+            abox.draw(&mut gizmos);
+            bbox.draw(&mut gizmos);
+        }
 
         if abox.is_touching(&bbox) {
             std::mem::swap(&mut a.2 .0, &mut b.2 .0);
