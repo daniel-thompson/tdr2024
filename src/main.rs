@@ -41,13 +41,16 @@ fn main() {
         .add_systems(
             Update,
             (
+                generate_guidance_field,
                 handle_keyboard,
                 handle_ai_players,
-                apply_friction,
                 apply_velocity,
+                apply_friction.after(apply_velocity),
                 track_player.after(apply_velocity),
-                generate_guidance_field,
-                collision_detection,
+                collision_detection
+                    .after(apply_velocity)
+                    .after(handle_keyboard)
+                    .after(handle_ai_players),
             ),
         )
         .run();
