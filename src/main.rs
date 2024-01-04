@@ -13,6 +13,8 @@ use slicetools::*;
 use std::f32::consts::PI;
 
 mod helpers;
+mod util;
+use util::IteratorToArrayExt;
 
 fn main() {
     App::new()
@@ -204,7 +206,7 @@ fn spawn_player(
         SpriteSheetBundle {
             texture_atlas: texture_atlas.add(atlas),
             transform: Transform {
-                translation: Vec3::new(-1000.0, 0.0, 3.0),
+                translation: vec3(-1000.0, 0.0, 3.0),
                 scale: Vec3::splat(1.),
                 ..default()
             },
@@ -286,10 +288,6 @@ fn apply_velocity(mut query: Query<(&Velocity, &mut Transform)>, time: Res<Time>
     }
 }
 
-struct CollisionBox {
-    points: [Vec2; 4],
-}
-
 fn same_side(p1: Vec2, p2: Vec2, line: (Vec2, Vec2)) -> bool {
     let p1 = Vec3::from((p1, 0.0));
     let p2 = Vec3::from((p2, 0.0));
@@ -314,35 +312,43 @@ fn point_in_polygon(pt: Vec2, shape: &[Vec2]) -> bool {
         .all(|x| same_side(pt, x[0], (x[1], x[2])))
 }
 
-fn point_in_rectangle(pt: Vec2, shape: &[Vec2]) -> bool {
-    same_side(pt, shape[2], (shape[0], shape[1]))
-        && same_side(pt, shape[3], (shape[1], shape[2]))
-        && same_side(pt, shape[0], (shape[2], shape[3]))
-        && same_side(pt, shape[1], (shape[3], shape[0]))
+struct CollisionBox {
+    points: [Vec2; 8],
 }
 
 impl CollisionBox {
     fn from_transform(tf: &Transform, sz: &Vec2) -> Self {
-        let sz3 = Vec3::from((*sz * 0.5, 0.0));
-        let tr = tf.transform_point(sz3);
-        let tl = tf.transform_point(vec3(-sz3.x, sz3.y, 0.0));
-        let bl = tf.transform_point(vec3(-sz3.x, -sz3.y, 0.0));
-        let br = tf.transform_point(vec3(sz3.x, -sz3.y, 0.0));
+        let w = sz.x * 0.5;
+        let h = sz.y * 0.5;
+
+        // c is used to round the corners of the box, choosing
+        // 2.5 is a little arbitrary but it gives a good "feel"
+        // for most artwork... and you could handle special cases
+        // by creating the box by hand.
+        let c = w.min(h) / 2.5;
 
         Self {
             points: [
-                vec2(tr.x, tr.y),
-                vec2(br.x, br.y),
-                vec2(bl.x, bl.y),
-                vec2(tl.x, tl.y),
-            ],
+                vec2(c - w, h),
+                vec2(w - c, h),
+                vec2(w, h - c),
+                vec2(w, c - h),
+                vec2(w - c, -h),
+                vec2(c - w, -h),
+                vec2(-w, c - h),
+                vec2(-w, h - c),
+            ]
+            .iter()
+            .map(|v2| {
+                let v3 = Vec3::from((*v2, 0.0));
+                let pt = tf.transform_point(v3);
+                vec2(pt.x, pt.y)
+            })
+            .to_array(),
         }
     }
 
-    /// Test whether two rectangles are touching
-    ///
-    /// Two rectangles do *not* touch if all four points of one rectangle
-    /// do not cross any of the lines made by the other rectangles.
+    /// Test whether two rectangles are touching.
     fn is_touching(&self, other: &CollisionBox) -> bool {
         other
             .points
