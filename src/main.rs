@@ -441,6 +441,7 @@ fn handle_ai_players(
     )>,
     time: Res<Time>,
     guide: Option<Res<GuidanceField>>,
+    mut gizmos: Gizmos,
 ) {
     if guide.is_none() {
         return;
@@ -452,9 +453,9 @@ fn handle_ai_players(
     for (mut a, mut v, mut t, _, _) in query.iter_mut() {
         let pos = Vec2::new(t.translation.x, t.translation.y);
 
-        let left_whisker = pos + (450.0 * Vec2::from_angle(a.0 + (PI / 12.)));
+        let left_whisker = pos + (425.0 * Vec2::from_angle(a.0 + (PI / 12.)));
         let left_pixel = guide.get(&left_whisker);
-        let right_whisker = pos + (450.0 * Vec2::from_angle(a.0 - (PI / 12.)));
+        let right_whisker = pos + (425.0 * Vec2::from_angle(a.0 - (PI / 12.)));
         let right_pixel = guide.get(&right_whisker);
 
         let left_whisker2 = pos + (200.0 * Vec2::from_angle(a.0 + (PI / 6.)));
@@ -462,8 +463,21 @@ fn handle_ai_players(
         let right_whisker2 = pos + (200.0 * Vec2::from_angle(a.0 - (PI / 6.)));
         let right_pixel2 = guide.get(&right_whisker2);
 
-        let front_whisker = pos + (400.0 * Vec2::from_angle(a.0));
+        let front_whisker = pos + (425.0 * Vec2::from_angle(a.0));
         let front_pixel = guide.get(&front_whisker);
+
+        if false {
+            for v in [
+                left_whisker,
+                right_whisker,
+                left_whisker2,
+                right_whisker2,
+                front_whisker,
+            ] {
+                gizmos.circle_2d(v, 2.0, Color::BLUE);
+                gizmos.line_2d(pos, v, Color::BLUE);
+            }
+        }
 
         if ((left_pixel - 10) > right_pixel) || ((left_pixel2 - 10) > right_pixel2) {
             a.0 += delta * 3.0;
