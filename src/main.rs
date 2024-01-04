@@ -348,6 +348,10 @@ impl CollisionBox {
             .points
             .iter()
             .any(|pt| point_in_polygon(*pt, &self.points))
+            || self
+                .points
+                .iter()
+                .any(|pt| point_in_polygon(*pt, &other.points))
     }
 }
 
