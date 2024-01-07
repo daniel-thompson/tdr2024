@@ -12,6 +12,7 @@ use itertools::Itertools;
 use slicetools::*;
 use std::f32::consts::PI;
 
+mod assets;
 mod helpers;
 mod util;
 use util::IteratorToArrayExt;
@@ -30,6 +31,7 @@ fn main() {
             }),
             helpers::editor::Plugin,
             TilemapPlugin,
+            assets::Plugin,
             helpers::tiled::TiledMapPlugin,
         ))
         .register_type::<Angle>()
@@ -95,7 +97,8 @@ fn spawn_camera(mut commands: Commands) {
 }
 
 fn load_maps(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let map_handle: Handle<helpers::tiled::TiledMap> = asset_server.load("level1.tmx");
+    let map_handle: Handle<helpers::tiled::TiledMap> =
+        asset_server.load("embedded://tdr2024/assets/level1.tmx");
 
     commands.spawn(helpers::tiled::TiledMapBundle {
         tiled_map: map_handle,
@@ -194,7 +197,7 @@ fn spawn_player(
     asset_server: Res<AssetServer>,
 ) {
     let atlas = TextureAtlas::from_grid(
-        asset_server.load("kenney_racing-pack/PNG/Cars/car_red_5.png"),
+        asset_server.load("embedded://tdr2024/assets/kenney_racing-pack/PNG/Cars/car_red_5.png"),
         Vec2::new(70., 121.),
         1,
         1,
@@ -224,7 +227,8 @@ fn spawn_ai_players(
     mut texture_atlas: ResMut<Assets<TextureAtlas>>,
     asset_server: Res<AssetServer>,
 ) {
-    let handle = asset_server.load("kenney_racing-pack/PNG/Cars/car_blue_1.png");
+    let handle =
+        asset_server.load("embedded://tdr2024/assets/kenney_racing-pack/PNG/Cars/car_blue_1.png");
     let atlas = TextureAtlas::from_grid(handle, Vec2::new(70., 121.), 1, 1, None, None);
 
     commands.spawn((
@@ -242,7 +246,8 @@ fn spawn_ai_players(
         },
     ));
 
-    let handle = asset_server.load("kenney_racing-pack/PNG/Cars/car_yellow_3.png");
+    let handle =
+        asset_server.load("embedded://tdr2024/assets/kenney_racing-pack/PNG/Cars/car_yellow_3.png");
     let atlas = TextureAtlas::from_grid(handle, Vec2::new(70., 121.), 1, 1, None, None);
     commands.spawn((
         Racer,
@@ -259,7 +264,8 @@ fn spawn_ai_players(
         },
     ));
 
-    let handle = asset_server.load("kenney_racing-pack/PNG/Cars/car_green_4.png");
+    let handle =
+        asset_server.load("embedded://tdr2024/assets/kenney_racing-pack/PNG/Cars/car_green_4.png");
     let atlas = TextureAtlas::from_grid(handle, Vec2::new(70., 121.), 1, 1, None, None);
     commands.spawn((
         Racer,
@@ -508,5 +514,6 @@ fn track_player(
     for (mut txc, _, _) in camera.iter_mut() {
         txc.translation.x = txp.translation.x;
         txc.translation.y = txp.translation.y;
+        //txc.rotation = txp.rotation;
     }
 }
