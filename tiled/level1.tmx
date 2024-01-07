@@ -48,7 +48,6 @@
    <image width="128" height="128" source="../assets/kenney_racing-pack/PNG/Tiles/Grass/land_grass13.png"/>
   </tile>
  </tileset>
- <tileset firstgid="339" source=":/automap-tiles.tsx"/>
  <layer id="2" name="Background" width="34" height="20">
   <data encoding="csv">
 37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,327,328,328,328,328,328,328,328,328,328,328,328,328,328,328,328,335,335,328,
