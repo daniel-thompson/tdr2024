@@ -28,11 +28,12 @@ fn main() {
                 }),
                 ..default()
             }),
-            bevy_editor_pls::prelude::EditorPlugin::default(),
+            helpers::editor::Plugin,
+            TilemapPlugin,
+            helpers::tiled::TiledMapPlugin,
         ))
         .register_type::<Angle>()
         .register_type::<Velocity>()
-        .add_plugins((TilemapPlugin, helpers::tiled::TiledMapPlugin))
         .insert_resource(ClearColor(Color::rgb(0.053, 0.782, 0.276)))
         .add_systems(
             Startup,
