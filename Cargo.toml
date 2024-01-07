@@ -24,4 +24,8 @@ opt-level = 1
 
 # Enable more aggressive optimizations for all imported crates
 [profile.dev.package."*"]
-opt-level = 2
+opt-level = 's'
+
+[profile.release]
+lto = "thin"
+opt-level = 's'
