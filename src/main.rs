@@ -25,6 +25,11 @@ fn main() {
                     title: "TRD2024 - Orcombe Point edition".to_string(),
                     resolution: (1920.0, 1080.0).into(),
                     present_mode: window::PresentMode::AutoVsync,
+                    mode: window::WindowMode::BorderlessFullscreen,
+                    cursor: window::Cursor {
+                        visible: false,
+                        ..default()
+                    },
                     ..default()
                 }),
                 ..default()
