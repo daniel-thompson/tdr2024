@@ -150,7 +150,7 @@ impl GuidanceField {
     fn get(&self, pos: &Vec2) -> i32 {
         let (w, h) = self.image.dimensions();
         let shift = Vec2::new(w as f32 * 0.5, h as f32 * 0.5);
-        let pos = shift + pos.clone();
+        let pos = shift + *pos;
 
         if (pos.y as u32) < h {
             let x = pos.x as u32;
@@ -173,7 +173,7 @@ fn generate_guidance_field(
     for event in map_events.read() {
         match event {
             AssetEvent::Added { id } => {
-                if let Some(map) = maps.get(id.clone()) {
+                if let Some(map) = maps.get(*id) {
                     commands.insert_resource(
                         GuidanceField::from_map(&map.map)
                             .expect("Track cannot be converted to GuidanceField"),
