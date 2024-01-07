@@ -1,0 +1,60 @@
+name: Release build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  linux-build:
+    name: Linux release build
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install distro packages
+      run:  |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev
+
+    - uses: dtolnay/rust-toolchain@stable
+
+    - run: cargo build --release
+
+    - name: Run packaging steps
+      run: |
+          mkdir -p tdr2024-linux-amd64/bin
+          install -s target/release/tdr2024 tdr2024-linux-amd64/bin/tdr2024
+          install LICENSE.md tdr2024-linux-amd64/LICENSE.md
+          install README.md tdr2024-linux-amd64/LICENSE.md
+          tar cf - tdr2024-linux-amd64 | xz -T0 -c > tdr2024-linux-amd64.tar.xz
+
+    - name: Linux release build
+      uses: actions/upload-artifact@v3
+      with:
+        name: tdr2024-linux-amd64
+        path: tdr2024-linux-amd64.tar.xz
+
+  windows-build:
+    name: Windows release build
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: dtolnay/rust-toolchain@stable
+
+    - run: cargo build --release
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: Windows release build
+        path: |
+          target/release/tdr2024.exe
+          INSTALL.md
+          README.md
