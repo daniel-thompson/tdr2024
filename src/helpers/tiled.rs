@@ -133,7 +133,7 @@ impl AssetLoader for TiledLoader {
                                 let tile_path = tmx_dir.join(&img.source);
                                 let asset_path = AssetPath::from(tile_path.to_str().expect("tile_path is not UTF-8").to_string());
                                 //let asset_path = AssetPath::from(tile_path);
-                                log::info!("Loading tile image from {asset_path:?} as image ({tileset_index}, {tile_id})");
+                                log::debug!("Loading tile image from {asset_path:?} as image ({tileset_index}, {tile_id})");
                                 let texture: Handle<Image> = load_context.load(asset_path.clone());
                                 tile_image_offsets
                                     .insert((tileset_index, tile_id), tile_images.len() as u32);
@@ -149,7 +149,7 @@ impl AssetLoader for TiledLoader {
                         let tmx_dir = std::path::PathBuf::from("embedded://");
                         let tile_path = tmx_dir.join(&img.source);
                         let asset_path = AssetPath::from(tile_path.to_str().expect("tile_path is not UTF-8").to_string());
-                        log::info!("Loading tile image from {asset_path:?}");
+                        log::debug!("Loading tile image from {asset_path:?}");
                         let texture: Handle<Image> = load_context.load(asset_path.clone());
 
                         TilemapTexture::Single(texture.clone())
