@@ -8,6 +8,7 @@ use bevy::{
     window,
 };
 use bevy_ecs_tilemap::prelude::*;
+use clap::Parser;
 use itertools::Itertools;
 use slicetools::*;
 use std::f32::consts::PI;
@@ -17,15 +18,33 @@ mod helpers;
 mod util;
 use util::IteratorToArrayExt;
 
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Enable windowed mode (for debugging try: -wdd)
+    #[arg(short, long)]
+    window: bool,
+
+    /// Turn debugging visualizations on
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    debug: u8,
+}
+
 fn main() {
+    let args = Args::parse();
+
     App::new()
         .add_plugins((
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
-                    title: "TRD2024 - Orcombe Point edition".to_string(),
-                    resolution: (1920.0, 1080.0).into(),
+                    title: "TDR2024 - Orcombe Point edition".to_string(),
+                    resolution: (1280.0, 720.0).into(),
                     present_mode: window::PresentMode::AutoVsync,
-                    mode: window::WindowMode::BorderlessFullscreen,
+                    mode: if args.window {
+                        window::WindowMode::default()
+                    } else {
+                        window::WindowMode::BorderlessFullscreen
+                    },
                     cursor: window::Cursor {
                         visible: false,
                         ..default()
@@ -42,6 +61,7 @@ fn main() {
         .register_type::<Angle>()
         .register_type::<Velocity>()
         .insert_resource(ClearColor(Color::rgb(0.053, 0.782, 0.276)))
+        .insert_resource(DebugLevel(args.debug))
         .add_systems(
             Startup,
             (load_maps, spawn_camera, spawn_player, spawn_ai_players),
@@ -62,6 +82,19 @@ fn main() {
             ),
         )
         .run();
+}
+
+#[derive(Resource)]
+struct DebugLevel(u8);
+
+impl DebugLevel {
+    fn low(&self) -> bool {
+        self.0 >= 1
+    }
+
+    fn high(&self) -> bool {
+        self.0 >= 2
+    }
 }
 
 #[derive(Component, Debug)]
@@ -386,6 +419,7 @@ impl CollisionBox {
 fn collision_detection(
     mut query: Query<(&mut Transform, &Handle<TextureAtlas>, &mut Velocity)>,
     texture_atlases: Res<Assets<TextureAtlas>>,
+    debug: Res<DebugLevel>,
     mut gizmos: Gizmos,
 ) {
     let mut colliders = query.iter_mut().collect::<Vec<_>>();
@@ -402,7 +436,7 @@ fn collision_detection(
 
         let mut abox = CollisionBox::from_transform(&a.0, &atx.size);
         let mut bbox = CollisionBox::from_transform(&b.0, &btx.size);
-        if false {
+        if debug.low() {
             abox.draw(&mut gizmos);
             bbox.draw(&mut gizmos);
         }
@@ -456,6 +490,7 @@ fn handle_ai_players(
     )>,
     time: Res<Time>,
     guide: Option<Res<GuidanceField>>,
+    debug: Res<DebugLevel>,
     mut gizmos: Gizmos,
 ) {
     if guide.is_none() {
@@ -481,7 +516,7 @@ fn handle_ai_players(
         let front_whisker = pos + (425.0 * Vec2::from_angle(a.0));
         let front_pixel = guide.get(&front_whisker);
 
-        if false {
+        if debug.high() {
             for v in [
                 left_whisker,
                 right_whisker,
