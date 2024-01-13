@@ -11,6 +11,7 @@ impl bevy::prelude::Plugin for Plugin {
         let p = if cfg!(windows) { "src\\" } else { "src/" };
 
         embedded_asset!(app, p, "level1.tmx");
+        embedded_asset!(app, p, "level2.tmx");
 
         embedded_asset!(app, p, "kenney_racing-pack/PNG/Cars/car_red_5.png");
         embedded_asset!(app, p, "kenney_racing-pack/PNG/Cars/car_blue_1.png");

@@ -18,16 +18,30 @@ mod helpers;
 mod util;
 use util::IteratorToArrayExt;
 
-#[derive(Parser)]
+#[derive(Clone, Debug, Parser, Resource)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Enable windowed mode (for debugging try: -wdd)
-    #[arg(short, long)]
-    window: bool,
-
     /// Turn debugging visualizations on
     #[arg(short, long, action = clap::ArgAction::Count)]
     debug: u8,
+
+    /// Jump to the selected level
+    #[arg(short, long, default_value_t = 1)]
+    level: u32,
+
+    /// Enable windowed mode (for debugging try: -wdd)
+    #[arg(short, long)]
+    window: bool,
+}
+
+impl Args {
+    fn debug_low(&self) -> bool {
+        self.debug >= 1
+    }
+
+    fn debug_high(&self) -> bool {
+        self.debug >= 2
+    }
 }
 
 fn main() {
@@ -60,8 +74,8 @@ fn main() {
         ))
         .register_type::<Angle>()
         .register_type::<Velocity>()
-        .insert_resource(ClearColor(Color::rgb(0.053, 0.782, 0.276)))
-        .insert_resource(DebugLevel(args.debug))
+        .insert_resource(ClearColor(Color::rgb_linear(0.153, 0.682, 0.376)))
+        .insert_resource(args)
         .add_systems(
             Startup,
             (load_maps, spawn_camera, spawn_player, spawn_ai_players),
@@ -72,7 +86,9 @@ fn main() {
                 generate_guidance_field,
                 handle_keyboard,
                 handle_ai_players,
-                apply_velocity,
+                apply_velocity
+                    .after(handle_ai_players)
+                    .after(handle_keyboard),
                 apply_friction.after(apply_velocity),
                 track_player.after(apply_velocity),
                 collision_detection
@@ -82,19 +98,6 @@ fn main() {
             ),
         )
         .run();
-}
-
-#[derive(Resource)]
-struct DebugLevel(u8);
-
-impl DebugLevel {
-    fn low(&self) -> bool {
-        self.0 >= 1
-    }
-
-    fn high(&self) -> bool {
-        self.0 >= 2
-    }
 }
 
 #[derive(Component, Debug)]
@@ -134,9 +137,9 @@ fn spawn_camera(mut commands: Commands) {
     commands.spawn(camera);
 }
 
-fn load_maps(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let map_handle: Handle<helpers::tiled::TiledMap> =
-        asset_server.load("embedded://tdr2024/assets/level1.tmx");
+fn load_maps(mut commands: Commands, asset_server: Res<AssetServer>, args: Res<Args>) {
+    let p = format!("embedded://tdr2024/assets/level{}.tmx", args.level);
+    let map_handle: Handle<helpers::tiled::TiledMap> = asset_server.load(p);
 
     commands.spawn(helpers::tiled::TiledMapBundle {
         tiled_map: map_handle,
@@ -151,7 +154,12 @@ struct GuidanceField {
 
 impl GuidanceField {
     fn from_map(map: &tiled::Map) -> Option<Self> {
-        let layer = map.get_layer(1)?.as_tile_layer()?;
+        let layer = map
+            .get_layer(1)
+            .unwrap_or(map.get_layer(0)?)
+            .as_tile_layer()?;
+        dbg!(map.get_layer(1));
+        dbg!(&layer);
 
         let w = layer.width()?;
         let h = layer.height()?;
@@ -271,7 +279,7 @@ fn spawn_ai_players(
 
     commands.spawn((
         Racer,
-        Angle(0.0),
+        Angle(PI / 12.0),
         Velocity(Vec2::new(0.0, 20.0)),
         SpriteSheetBundle {
             texture_atlas: texture_atlas.add(atlas),
@@ -289,7 +297,7 @@ fn spawn_ai_players(
     let atlas = TextureAtlas::from_grid(handle, Vec2::new(70., 121.), 1, 1, None, None);
     commands.spawn((
         Racer,
-        Angle(0.0),
+        Angle(PI / 12.0),
         Velocity(Vec2::new(0.0, 20.0)),
         SpriteSheetBundle {
             texture_atlas: texture_atlas.add(atlas),
@@ -307,7 +315,7 @@ fn spawn_ai_players(
     let atlas = TextureAtlas::from_grid(handle, Vec2::new(70., 121.), 1, 1, None, None);
     commands.spawn((
         Racer,
-        Angle(0.0),
+        Angle(PI / 12.0),
         Velocity(Vec2::new(0.0, 20.0)),
         SpriteSheetBundle {
             texture_atlas: texture_atlas.add(atlas),
@@ -321,10 +329,23 @@ fn spawn_ai_players(
     ));
 }
 
-fn apply_friction(mut query: Query<&mut Velocity>, time: Res<Time>) {
+fn apply_friction(
+    mut query: Query<(&mut Velocity, &mut Transform)>,
+    time: Res<Time>,
+    guide: Option<Res<GuidanceField>>,
+) {
     let delta = time.delta_seconds();
-    for mut v in query.iter_mut() {
+    for (mut v, t) in query.iter_mut() {
         v.0 *= 1.0 - (delta * 1.2);
+
+        if let Some(guide) = &guide {
+            let pos = Vec2::new(t.translation.x, t.translation.y);
+            let pixel = guide.get(&pos);
+            if pixel < 127 {
+                let factor = 1.2 + 1.2 * (1.0 - (pixel as f32 / 127.0));
+                v.0 *= 1.0 - (delta * factor);
+            }
+        }
     }
 }
 
@@ -419,7 +440,7 @@ impl CollisionBox {
 fn collision_detection(
     mut query: Query<(&mut Transform, &Handle<TextureAtlas>, &mut Velocity)>,
     texture_atlases: Res<Assets<TextureAtlas>>,
-    debug: Res<DebugLevel>,
+    args: Res<Args>,
     mut gizmos: Gizmos,
 ) {
     let mut colliders = query.iter_mut().collect::<Vec<_>>();
@@ -436,7 +457,7 @@ fn collision_detection(
 
         let mut abox = CollisionBox::from_transform(&a.0, &atx.size);
         let mut bbox = CollisionBox::from_transform(&b.0, &btx.size);
-        if debug.low() {
+        if args.debug_low() {
             abox.draw(&mut gizmos);
             bbox.draw(&mut gizmos);
         }
@@ -490,7 +511,7 @@ fn handle_ai_players(
     )>,
     time: Res<Time>,
     guide: Option<Res<GuidanceField>>,
-    debug: Res<DebugLevel>,
+    args: Res<Args>,
     mut gizmos: Gizmos,
 ) {
     if guide.is_none() {
@@ -516,7 +537,7 @@ fn handle_ai_players(
         let front_whisker = pos + (425.0 * Vec2::from_angle(a.0));
         let front_pixel = guide.get(&front_whisker);
 
-        if debug.high() {
+        if args.debug_high() {
             for v in [
                 left_whisker,
                 right_whisker,

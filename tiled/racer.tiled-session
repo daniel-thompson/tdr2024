@@ -1,5 +1,5 @@
 {
-    "activeFile": "level1.tmx",
+    "activeFile": "level2.tmx",
     "expandedProjectPaths": [
     ],
     "file.lastUsedOpenFilter": "All Files (*)",
@@ -27,20 +27,33 @@
         },
         "level1.tmx": {
             "scale": 0.33,
-            "selectedLayer": -1,
+            "selectedLayer": 0,
             "viewCenter": {
-                "x": 2133.333333333333,
-                "y": 1850
+                "x": 2431.818181818182,
+                "y": 1531.818181818182
             }
+        },
+        "level2.tmx": {
+            "scale": 0.3252,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 1134.6863468634685,
+                "y": 1474.4772447724479
+            }
+        },
+        "level2.tmx#Asphalt road": {
+            "scaleInDock": 1
         }
     },
     "last.exportedFilePath": "/home/drt/Projects/daniel-thompson/tdr2024/src/assets",
     "map.lastUsedExportFilter": "All Files (*)",
     "openFiles": [
-        "level1.tmx"
+        "level1.tmx",
+        "level2.tmx"
     ],
     "project": "racer.tiled-project",
     "recentFiles": [
-        "level1.tmx"
+        "level1.tmx",
+        "level2.tmx"
     ]
 }
