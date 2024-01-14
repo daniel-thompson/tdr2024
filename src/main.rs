@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2023-2024 Daniel Thompson
 
+#![allow(clippy::type_complexity)]
+
 use bevy::{
     math::{vec2, vec3},
     prelude::*,
@@ -95,6 +97,7 @@ fn main() {
                     .after(apply_velocity)
                     .after(handle_keyboard)
                     .after(handle_ai_players),
+                apply_time_penalties,
             ),
         )
         .run();
@@ -103,8 +106,11 @@ fn main() {
 #[derive(Component, Debug)]
 struct Player;
 
-#[derive(Component, Debug)]
-struct Racer;
+#[derive(Component, Debug, Default)]
+struct Racer {
+    penalty: f32,
+    last_tile: Option<Vec2>,
+}
 
 #[derive(Component, Default, Debug)]
 struct Track;
@@ -158,8 +164,6 @@ impl GuidanceField {
             .get_layer(1)
             .unwrap_or(map.get_layer(0)?)
             .as_tile_layer()?;
-        dbg!(map.get_layer(1));
-        dbg!(&layer);
 
         let w = layer.width()?;
         let h = layer.height()?;
@@ -253,7 +257,7 @@ fn spawn_player(
 
     commands.spawn((
         Player,
-        Racer,
+        Racer::default(),
         Angle(0.0),
         Velocity(Vec2::new(0.0, 20.0)),
         SpriteSheetBundle {
@@ -278,7 +282,7 @@ fn spawn_ai_players(
     let atlas = TextureAtlas::from_grid(handle, Vec2::new(70., 121.), 1, 1, None, None);
 
     commands.spawn((
-        Racer,
+        Racer::default(),
         Angle(PI / 12.0),
         Velocity(Vec2::new(0.0, 20.0)),
         SpriteSheetBundle {
@@ -296,7 +300,7 @@ fn spawn_ai_players(
         asset_server.load("embedded://tdr2024/assets/kenney_racing-pack/PNG/Cars/car_yellow_3.png");
     let atlas = TextureAtlas::from_grid(handle, Vec2::new(70., 121.), 1, 1, None, None);
     commands.spawn((
-        Racer,
+        Racer::default(),
         Angle(PI / 12.0),
         Velocity(Vec2::new(0.0, 20.0)),
         SpriteSheetBundle {
@@ -314,7 +318,7 @@ fn spawn_ai_players(
         asset_server.load("embedded://tdr2024/assets/kenney_racing-pack/PNG/Cars/car_green_4.png");
     let atlas = TextureAtlas::from_grid(handle, Vec2::new(70., 121.), 1, 1, None, None);
     commands.spawn((
-        Racer,
+        Racer::default(),
         Angle(PI / 12.0),
         Velocity(Vec2::new(0.0, 20.0)),
         SpriteSheetBundle {
@@ -329,6 +333,39 @@ fn spawn_ai_players(
     ));
 }
 
+fn apply_time_penalties(
+    mut query: Query<(&mut Transform, &mut Racer, &Player)>,
+    maps: Res<Assets<helpers::tiled::TiledMap>>,
+) {
+    let map = match maps.iter().next() {
+        Some(map) => &map.1.map,
+        None => return,
+    };
+
+    let layer = map
+        .get_layer(1)
+        .or(map.get_layer(0))
+        .and_then(|layer| layer.as_tile_layer())
+        .expect("Failed to lookup track layer");
+
+    for (t, mut r, _) in query.iter_mut() {
+        let x = (t.translation.x / map.tile_width as f32) + (map.width as f32 / 2.0);
+        let y = (-t.translation.y / map.tile_height as f32) + (map.height as f32 / 2.0);
+
+        let on_track = layer.get_tile(x as i32, y as i32).is_some();
+        if on_track {
+            let now = vec2(x, y);
+            if let Some(prev) = r.last_tile {
+                let delta = now.distance(prev).abs();
+                if delta > 1.0 {
+                    r.penalty += delta;
+                }
+            }
+            r.last_tile = Some(now);
+        }
+    }
+}
+
 fn apply_friction(
     mut query: Query<(&mut Velocity, &mut Transform)>,
     time: Res<Time>,
@@ -341,8 +378,8 @@ fn apply_friction(
         if let Some(guide) = &guide {
             let pos = Vec2::new(t.translation.x, t.translation.y);
             let pixel = guide.get(&pos);
-            if pixel < 127 {
-                let factor = 1.2 + 1.2 * (1.0 - (pixel as f32 / 127.0));
+            if pixel < 140 {
+                let factor = 1.2 + 1.2 * (1.0 - (pixel as f32 / 140.0));
                 v.0 *= 1.0 - (delta * factor);
             }
         }
@@ -480,13 +517,29 @@ fn collision_detection(
 }
 
 fn handle_keyboard(
-    mut query: Query<(&mut Angle, &mut Velocity, &mut Transform, With<Player>)>,
+    mut query: Query<(
+        &mut Angle,
+        &mut Velocity,
+        &mut Transform,
+        &mut Racer,
+        With<Player>,
+    )>,
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
 ) {
     let delta = time.delta_seconds();
 
-    let (mut a, mut v, mut t, _) = query.single_mut();
+    let (mut a, mut v, mut t, mut r, _) = query.single_mut();
+
+    if r.penalty > 0.0 {
+        r.penalty = if r.penalty < delta {
+            0.0
+        } else {
+            r.penalty - delta
+        };
+        return;
+    }
+
     if input.pressed(KeyCode::Z) {
         a.0 += delta * 3.0;
     }
@@ -506,7 +559,7 @@ fn handle_ai_players(
         &mut Angle,
         &mut Velocity,
         &mut Transform,
-        With<Racer>,
+        &mut Racer,
         Without<Player>,
     )>,
     time: Res<Time>,
@@ -521,7 +574,15 @@ fn handle_ai_players(
 
     let delta = time.delta_seconds();
 
-    for (mut a, mut v, mut t, _, _) in query.iter_mut() {
+    for (mut a, mut v, mut t, mut r, _) in query.iter_mut() {
+        if r.penalty > 0.0 {
+            r.penalty = if r.penalty < delta {
+                0.0
+            } else {
+                r.penalty - delta
+            };
+            continue;
+        }
         let pos = Vec2::new(t.translation.x, t.translation.y);
 
         let left_whisker = pos + (425.0 * Vec2::from_angle(a.0 + (PI / 12.)));
