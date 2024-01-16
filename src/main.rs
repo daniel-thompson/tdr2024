@@ -106,6 +106,12 @@ fn main() {
 #[derive(Component, Debug)]
 struct Player;
 
+#[derive(Component, Debug)]
+struct Speedometer;
+
+#[derive(Component, Debug)]
+struct SpeedoNeedle;
+
 #[derive(Component, Debug, Default)]
 struct Racer {
     penalty: f32,
@@ -264,6 +270,36 @@ fn spawn_player(
             texture_atlas: texture_atlas.add(atlas),
             transform: Transform {
                 translation: vec3(-1000.0, 0.0, 3.0),
+                scale: Vec3::splat(1.),
+                ..default()
+            },
+            ..default()
+        },
+    ));
+
+    let handle = asset_server.load("embedded://tdr2024/assets/speeddial.png");
+    let atlas = TextureAtlas::from_grid(handle, Vec2::new(196., 196.), 1, 1, None, None);
+    commands.spawn((
+        Speedometer,
+        SpriteSheetBundle {
+            texture_atlas: texture_atlas.add(atlas),
+            transform: Transform {
+                translation: Vec3::new(0.0, -200.0, 3.0),
+                scale: Vec3::splat(1.),
+                ..default()
+            },
+            ..default()
+        },
+    ));
+
+    let handle = asset_server.load("embedded://tdr2024/assets/speedneedle.png");
+    let atlas = TextureAtlas::from_grid(handle, Vec2::new(196., 196.), 1, 1, None, None);
+    commands.spawn((
+        SpeedoNeedle,
+        SpriteSheetBundle {
+            texture_atlas: texture_atlas.add(atlas),
+            transform: Transform {
+                translation: Vec3::new(0.0, -200.0, 4.0),
                 scale: Vec3::splat(1.),
                 ..default()
             },
@@ -628,10 +664,30 @@ fn handle_ai_players(
 }
 
 fn track_player(
-    player: Query<(&Transform, With<Player>)>,
+    player: Query<(&Transform, &Velocity, With<Player>)>,
+    mut speedo: Query<(
+        &mut Transform,
+        With<Speedometer>,
+        Without<SpeedoNeedle>,
+        Without<Camera>,
+        Without<Player>,
+    )>,
+    mut needle: Query<(
+        &mut Transform,
+        With<SpeedoNeedle>,
+        Without<Speedometer>,
+        Without<Camera>,
+        Without<Player>,
+    )>,
     mut camera: Query<(&mut Transform, With<Camera>, Without<Player>)>,
 ) {
-    let (txp, _) = player.single();
+    let (txp, v, _) = player.single();
+    let (mut speedo, _, _, _, _) = speedo.single_mut();
+    let (mut needle, _, _, _, _) = needle.single_mut();
+
+    speedo.translation = txp.translation + vec3(-800.0, -400.0, 3.0);
+    needle.translation = txp.translation + vec3(-800.0, -400.0, 4.0);
+    needle.rotation = Quat::from_rotation_z(v.0.length() / -100.0);
 
     for (mut txc, _, _) in camera.iter_mut() {
         txc.translation.x = txp.translation.x;

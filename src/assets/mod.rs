@@ -13,6 +13,9 @@ impl bevy::prelude::Plugin for Plugin {
         embedded_asset!(app, p, "level1.tmx");
         embedded_asset!(app, p, "level2.tmx");
 
+        embedded_asset!(app, p, "speeddial.png");
+        embedded_asset!(app, p, "speedneedle.png");
+
         embedded_asset!(app, p, "kenney_racing-pack/PNG/Cars/car_red_5.png");
         embedded_asset!(app, p, "kenney_racing-pack/PNG/Cars/car_blue_1.png");
         embedded_asset!(app, p, "kenney_racing-pack/PNG/Cars/car_yellow_3.png");
