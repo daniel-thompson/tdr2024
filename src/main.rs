@@ -16,6 +16,7 @@ use slicetools::*;
 use std::f32::consts::PI;
 
 mod assets;
+mod dashboard;
 mod helpers;
 mod util;
 use util::IteratorToArrayExt;
@@ -73,9 +74,8 @@ fn main() {
             TilemapPlugin,
             assets::Plugin,
             helpers::tiled::TiledMapPlugin,
+            dashboard::Plugin,
         ))
-        .register_type::<Angle>()
-        .register_type::<Velocity>()
         .insert_resource(ClearColor(Color::rgb_linear(0.153, 0.682, 0.376)))
         .insert_resource(args)
         .add_systems(
@@ -98,7 +98,6 @@ fn main() {
                     .after(handle_keyboard)
                     .after(handle_ai_players),
                 apply_time_penalties,
-                update_speedo,
             ),
         )
         .run();
@@ -106,9 +105,6 @@ fn main() {
 
 #[derive(Component, Debug)]
 struct Player;
-
-#[derive(Component, Debug)]
-struct Speedometer;
 
 #[derive(Component, Debug, Default)]
 struct Racer {
@@ -274,117 +270,6 @@ fn spawn_player(
             ..default()
         },
     ));
-
-    let dial = asset_server.load("embedded://tdr2024/assets/speeddial.png");
-    let needle = asset_server.load("embedded://tdr2024/assets/speedneedle.png");
-
-    commands
-        .spawn(NodeBundle {
-            style: Style {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                justify_content: JustifyContent::SpaceBetween,
-                ..default()
-            },
-            ..default()
-        })
-        .with_children(|parent| {
-            parent.spawn((
-                NodeBundle {
-                    style: Style {
-                        width: Val::Px(196.0),
-                        height: Val::Px(196.0),
-                        margin: UiRect::top(Val::VMin(5.)),
-                        ..default()
-                    },
-                    ..default()
-                },
-                UiImage::new(dial),
-            ));
-        })
-        .with_children(|parent| {
-            parent.spawn((
-                NodeBundle {
-                    style: Style {
-                        width: Val::Px(196.0),
-                        height: Val::Px(196.0),
-                        margin: UiRect::top(Val::VMin(5.)),
-                        ..default()
-                    },
-                    ..default()
-                },
-                UiImage::new(needle),
-            ));
-        });
-
-    commands
-        .spawn(NodeBundle {
-            style: Style {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                left: Val::Percent(-40.0),
-                bottom: Val::Percent(-70.0),
-                ..default()
-            },
-            ..default()
-        })
-        .with_children(|parent| {
-            parent
-                .spawn(NodeBundle {
-                    style: Style {
-                        width: Val::Percent(100.0),
-                        position_type: PositionType::Absolute,
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::FlexStart,
-                        ..default()
-                    },
-                    ..default()
-                })
-                .with_children(|parent| {
-                    parent.spawn((
-                        NodeBundle {
-                            style: Style {
-                                width: Val::VMax(100.0 * 256.0 / 1920.0),
-                                height: Val::VMax(100.0 * 256.0 / 1920.0),
-                                ..default()
-                            },
-                            background_color: Color::WHITE.into(),
-                            ..default()
-                        },
-                        UiImage::new(asset_server.load("embedded://tdr2024/assets/speeddial.png")),
-                    ));
-                });
-        })
-        .with_children(|parent| {
-            parent
-                .spawn(NodeBundle {
-                    style: Style {
-                        width: Val::Percent(100.0),
-                        position_type: PositionType::Absolute,
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::FlexStart,
-                        ..default()
-                    },
-                    ..default()
-                })
-                .with_children(|parent| {
-                    parent.spawn((
-                        Speedometer,
-                        NodeBundle {
-                            style: Style {
-                                width: Val::VMax(100.0 * 256.0 / 1920.0),
-                                height: Val::VMax(100.0 * 256.0 / 1920.0),
-                                ..default()
-                            },
-                            background_color: Color::WHITE.into(),
-                            ..default()
-                        },
-                        UiImage::new(
-                            asset_server.load("embedded://tdr2024/assets/speedneedle.png"),
-                        ),
-                    ));
-                });
-        });
 }
 
 fn spawn_ai_players(
@@ -740,16 +625,6 @@ fn handle_ai_players(
         a.normalize();
         t.rotation = a.to_quat();
     }
-}
-
-fn update_speedo(
-    player: Query<(&Velocity, With<Player>)>,
-    mut speedo: Query<(&mut Transform, With<Speedometer>)>,
-) {
-    let (vp, _) = player.single();
-    let (mut needle, _) = speedo.single_mut();
-
-    needle.rotation = Quat::from_rotation_z(vp.0.length() / 100.0);
 }
 
 fn track_player(
