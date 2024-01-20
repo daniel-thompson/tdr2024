@@ -29,23 +29,29 @@
             "scale": 0.33,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 2431.818181818182,
-                "y": 1531.818181818182
+                "x": 3433.333333333333,
+                "y": 2022.727272727273
             }
         },
         "level2.tmx": {
             "scale": 0.3252,
-            "selectedLayer": 0,
+            "selectedLayer": 1,
             "viewCenter": {
-                "x": 1134.6863468634685,
-                "y": 1474.4772447724479
+                "x": 1682.041820418204,
+                "y": 1160.8241082410825
             }
         },
         "level2.tmx#Asphalt road": {
             "scaleInDock": 1
+        },
+        "objects.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
         }
     },
     "last.exportedFilePath": "/home/drt/Projects/daniel-thompson/tdr2024/src/assets",
+    "last.imagePath": "/home/drt/Projects/daniel-thompson/tdr2024/src/assets/kenney_racing-pack/PNG/Objects",
     "map.lastUsedExportFilter": "All Files (*)",
     "openFiles": [
         "level1.tmx",
@@ -53,7 +59,11 @@
     ],
     "project": "racer.tiled-project",
     "recentFiles": [
+        "grass.tsx",
+        "objects.tsx",
         "level1.tmx",
         "level2.tmx"
-    ]
+    ],
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.type": 1
 }

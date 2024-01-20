@@ -233,6 +233,11 @@ pub fn process_loaded_maps(
                 // tilesets on each layer and allows differently-sized tile images in each tileset,
                 // this means we need to load each combination of tileset and layer separately.
                 for (tileset_index, tileset) in tiled_map.map.tilesets().iter().enumerate() {
+                    if tileset.name == "Objects" {
+                        // The "Objects" tileset has mismatched sizes and we need to skip it
+                        //  when creating a tilemap.
+                        continue;
+                    }
                     let Some(tilemap_texture) = tiled_map.tilemap_textures.get(&tileset_index)
                     else {
                         log::warn!("Skipped creating layer with missing tilemap textures.");
@@ -256,8 +261,8 @@ pub fn process_loaded_maps(
 
                         let tiled::LayerType::Tiles(tile_layer) = layer.layer_type() else {
                             log::info!(
-                                "Skipping layer {} because only tile layers are supported.",
-                                layer.id()
+                                "Skipping layer {} (\"{}\") because only tile layers are supported.",
+                                layer.id(), layer.name
                             );
                             continue;
                         };
