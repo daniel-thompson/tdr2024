@@ -8,6 +8,15 @@ use itertools::Itertools;
 
 use crate::{tilemap, Player, Racer};
 
+#[derive(Default)]
+pub struct Plugin;
+
+impl bevy::app::Plugin for Plugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Update, (generate_guidance_field, apply_time_penalties));
+    }
+}
+
 #[derive(Resource)]
 pub struct GuidanceField {
     image: image::GrayImage,

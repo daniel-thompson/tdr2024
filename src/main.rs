@@ -21,7 +21,6 @@ mod mapping;
 mod tilemap;
 mod util;
 
-use mapping::*;
 use util::IteratorToArrayExt;
 
 #[derive(Clone, Debug, Parser, Resource)]
@@ -73,9 +72,10 @@ fn main() {
                 }),
                 ..default()
             }),
+            assets::Plugin,
             editor::Plugin,
             ecs_tilemap::TilemapPlugin,
-            assets::Plugin,
+            mapping::Plugin,
             tilemap::TiledMapPlugin,
             dashboard::Plugin,
         ))
@@ -88,7 +88,6 @@ fn main() {
         .add_systems(
             Update,
             (
-                generate_guidance_field,
                 handle_keyboard,
                 handle_ai_players,
                 apply_velocity
@@ -100,7 +99,6 @@ fn main() {
                     .after(apply_velocity)
                     .after(handle_keyboard)
                     .after(handle_ai_players),
-                apply_time_penalties,
             ),
         )
         .run();
@@ -251,7 +249,7 @@ fn spawn_ai_players(
 fn apply_friction(
     mut query: Query<(&mut Velocity, &mut Transform)>,
     time: Res<Time>,
-    guide: Option<Res<GuidanceField>>,
+    guide: Option<Res<mapping::GuidanceField>>,
 ) {
     let delta = time.delta_seconds();
     for (mut v, t) in query.iter_mut() {
@@ -445,7 +443,7 @@ fn handle_ai_players(
         Without<Player>,
     )>,
     time: Res<Time>,
-    guide: Option<Res<GuidanceField>>,
+    guide: Option<Res<mapping::GuidanceField>>,
     prefs: Res<Preferences>,
     mut gizmos: Gizmos,
 ) {
