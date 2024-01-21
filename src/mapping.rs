@@ -6,7 +6,7 @@
 use bevy::{math::vec2, prelude::*};
 use itertools::Itertools;
 
-use crate::{tilemap, Racer};
+use crate::{tilemap, Player, Racer};
 
 #[derive(Resource)]
 pub struct GuidanceField {
@@ -96,8 +96,14 @@ pub fn generate_guidance_field(
     }
 }
 
+/// Track whether the racer has skipped more than one tile and apply a time
+/// penalty if this is seen.
+///
+/// The `With<Player>` is temporary. We need it because the current guidance
+/// system isn't able to navigate some courses (esp. the "level 1" development
+/// level) when time penalties are applied.
 pub fn apply_time_penalties(
-    mut query: Query<(&mut Transform, &mut Racer)>,
+    mut query: Query<(&mut Transform, &mut Racer, With<Player>)>,
     maps: Res<Assets<tilemap::TiledMap>>,
 ) {
     let map = match maps.iter().next() {
@@ -111,7 +117,7 @@ pub fn apply_time_penalties(
         .and_then(|layer| layer.as_tile_layer())
         .expect("Failed to lookup track layer");
 
-    for (t, mut r) in query.iter_mut() {
+    for (t, mut r, _) in query.iter_mut() {
         let x = (t.translation.x / map.tile_width as f32) + (map.width as f32 / 2.0);
         let y = (-t.translation.y / map.tile_height as f32) + (map.height as f32 / 2.0);
 
