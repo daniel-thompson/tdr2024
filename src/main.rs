@@ -26,7 +26,7 @@ use util::IteratorToArrayExt;
 
 #[derive(Clone, Debug, Parser, Resource)]
 #[command(author, version, about, long_about = None)]
-struct Args {
+struct Preferences {
     /// Turn debugging visualizations on
     #[arg(short, long, action = clap::ArgAction::Count)]
     debug: u8,
@@ -40,7 +40,7 @@ struct Args {
     window: bool,
 }
 
-impl Args {
+impl Preferences {
     fn debug_low(&self) -> bool {
         self.debug >= 1
     }
@@ -51,7 +51,7 @@ impl Args {
 }
 
 fn main() {
-    let args = Args::parse();
+    let args = Preferences::parse();
 
     App::new()
         .add_plugins((
@@ -146,8 +146,8 @@ fn spawn_camera(mut commands: Commands) {
     commands.spawn(camera);
 }
 
-fn load_maps(mut commands: Commands, asset_server: Res<AssetServer>, args: Res<Args>) {
-    let p = format!("embedded://tdr2024/assets/level{}.tmx", args.level);
+fn load_maps(mut commands: Commands, asset_server: Res<AssetServer>, prefs: Res<Preferences>) {
+    let p = format!("embedded://tdr2024/assets/level{}.tmx", prefs.level);
     let map_handle: Handle<tilemap::TiledMap> = asset_server.load(p);
 
     commands.spawn(tilemap::TiledMapBundle {
@@ -359,7 +359,7 @@ impl CollisionBox {
 fn collision_detection(
     mut query: Query<(&mut Transform, &Handle<TextureAtlas>, &mut Velocity)>,
     texture_atlases: Res<Assets<TextureAtlas>>,
-    args: Res<Args>,
+    prefs: Res<Preferences>,
     mut gizmos: Gizmos,
 ) {
     let mut colliders = query.iter_mut().collect::<Vec<_>>();
@@ -376,7 +376,7 @@ fn collision_detection(
 
         let mut abox = CollisionBox::from_transform(&a.0, &atx.size);
         let mut bbox = CollisionBox::from_transform(&b.0, &btx.size);
-        if args.debug_low() {
+        if prefs.debug_low() {
             abox.draw(&mut gizmos);
             bbox.draw(&mut gizmos);
         }
@@ -446,7 +446,7 @@ fn handle_ai_players(
     )>,
     time: Res<Time>,
     guide: Option<Res<GuidanceField>>,
-    args: Res<Args>,
+    prefs: Res<Preferences>,
     mut gizmos: Gizmos,
 ) {
     if guide.is_none() {
@@ -480,7 +480,7 @@ fn handle_ai_players(
         let front_whisker = pos + (425.0 * Vec2::from_angle(a.0));
         let front_pixel = guide.get(&front_whisker);
 
-        if args.debug_high() {
+        if prefs.debug_high() {
             for v in [
                 left_whisker,
                 right_whisker,
