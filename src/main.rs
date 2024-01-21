@@ -9,7 +9,7 @@ use bevy::{
     render::camera::ScalingMode,
     window,
 };
-use bevy_ecs_tilemap::prelude::*;
+use bevy_ecs_tilemap::prelude as ecs_tilemap;
 use clap::Parser;
 use itertools::Itertools;
 use slicetools::*;
@@ -17,7 +17,8 @@ use std::f32::consts::PI;
 
 mod assets;
 mod dashboard;
-mod helpers;
+mod editor;
+mod tilemap;
 mod util;
 use util::IteratorToArrayExt;
 
@@ -70,10 +71,10 @@ fn main() {
                 }),
                 ..default()
             }),
-            helpers::editor::Plugin,
-            TilemapPlugin,
+            editor::Plugin,
+            ecs_tilemap::TilemapPlugin,
             assets::Plugin,
-            helpers::tiled::TiledMapPlugin,
+            tilemap::TiledMapPlugin,
             dashboard::Plugin,
         ))
         .insert_resource(ClearColor(Color::rgb_linear(0.153, 0.682, 0.376)))
@@ -145,9 +146,9 @@ fn spawn_camera(mut commands: Commands) {
 
 fn load_maps(mut commands: Commands, asset_server: Res<AssetServer>, args: Res<Args>) {
     let p = format!("embedded://tdr2024/assets/level{}.tmx", args.level);
-    let map_handle: Handle<helpers::tiled::TiledMap> = asset_server.load(p);
+    let map_handle: Handle<tilemap::TiledMap> = asset_server.load(p);
 
-    commands.spawn(helpers::tiled::TiledMapBundle {
+    commands.spawn(tilemap::TiledMapBundle {
         tiled_map: map_handle,
         ..default()
     });
@@ -217,8 +218,8 @@ impl GuidanceField {
 
 fn generate_guidance_field(
     mut commands: Commands,
-    mut map_events: EventReader<AssetEvent<helpers::tiled::TiledMap>>,
-    maps: Res<Assets<helpers::tiled::TiledMap>>,
+    mut map_events: EventReader<AssetEvent<tilemap::TiledMap>>,
+    maps: Res<Assets<tilemap::TiledMap>>,
 ) {
     for event in map_events.read() {
         match event {
@@ -334,8 +335,8 @@ fn spawn_ai_players(
 }
 
 fn apply_time_penalties(
-    mut query: Query<(&mut Transform, &mut Racer, &Player)>,
-    maps: Res<Assets<helpers::tiled::TiledMap>>,
+    mut query: Query<(&mut Transform, &mut Racer)>,
+    maps: Res<Assets<tilemap::TiledMap>>,
 ) {
     let map = match maps.iter().next() {
         Some(map) => &map.1.map,
@@ -348,7 +349,7 @@ fn apply_time_penalties(
         .and_then(|layer| layer.as_tile_layer())
         .expect("Failed to lookup track layer");
 
-    for (t, mut r, _) in query.iter_mut() {
+    for (t, mut r) in query.iter_mut() {
         let x = (t.translation.x / map.tile_width as f32) + (map.width as f32 / 2.0);
         let y = (-t.translation.y / map.tile_height as f32) + (map.height as f32 / 2.0);
 
