@@ -3,7 +3,7 @@
 
 #![allow(clippy::type_complexity)]
 
-use super::{Player, Velocity};
+use super::{physics, Player};
 use bevy::prelude::*;
 
 #[derive(Component, Debug)]
@@ -91,7 +91,7 @@ fn spawn_dashboard(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 
 fn update_speedo(
-    player: Query<(&Velocity, With<Player>)>,
+    player: Query<(&physics::Velocity, With<Player>)>,
     mut speedo: Query<(&mut Transform, With<Speedometer>)>,
 ) {
     let (vp, _) = player.single();
