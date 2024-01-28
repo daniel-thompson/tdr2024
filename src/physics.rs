@@ -7,7 +7,7 @@ use bevy::{math::vec2, prelude::*};
 use slicetools::*;
 use std::f32::consts::PI;
 
-use crate::{mapping, util::IteratorToArrayExt, Preferences};
+use crate::{mapping, objectmap, util::IteratorToArrayExt, Preferences};
 
 #[derive(Component, Debug, Reflect)]
 pub struct Velocity(pub Vec2);
@@ -69,6 +69,26 @@ fn same_side(p1: Vec2, p2: Vec2, line: (Vec2, Vec2)) -> bool {
     cp1.dot(cp2) >= 0.0
 }
 
+/// Calculate the length of a line between two points.
+///
+/// This is is a simple application of the Pythagorean theorem.
+fn length_of_line(line: (Vec2, Vec2)) -> f32 {
+    ((line.1.x - line.0.x).powi(2) + (line.1.y - line.0.y).powi(2)).sqrt()
+}
+
+/// Calculate the area of a triangle defined by three points.
+fn area_of_triangle(triangle: (Vec2, Vec2, Vec2)) -> f32 {
+    (((triangle.0.x - triangle.2.x) * (triangle.1.y - triangle.0.y))
+        - ((triangle.0.x - triangle.1.x) * (triangle.2.y - triangle.0.y)))
+        .abs()
+        / 2.0
+}
+
+/// Calculate the shortest distance from the point to a line.
+fn distance_to_line(pt: Vec2, line: (Vec2, Vec2)) -> f32 {
+    2.0 * area_of_triangle((pt, line.0, line.1)) / length_of_line(line)
+}
+
 fn point_in_polygon(pt: Vec2, shape: &[Vec2]) -> bool {
     let n = shape.len();
     shape
@@ -82,11 +102,31 @@ fn point_in_polygon(pt: Vec2, shape: &[Vec2]) -> bool {
         .all(|x| same_side(pt, x[0], (x[1], x[2])))
 }
 
-pub struct CollisionBox {
-    points: [Vec2; 8],
+fn closest_edge_to_point(pt: Vec2, shape: &[Vec2]) -> (Vec2, Vec2) {
+    let n = shape.len();
+    shape
+        .windows(2)
+        .chain(std::iter::once([shape[n - 1], shape[0]].as_slice()))
+        .map(|line| (line[0], line[1]))
+        .min_by(|a, b| {
+            distance_to_line(pt, *a)
+                .partial_cmp(&distance_to_line(pt, *b))
+                .expect("Floating point numbers must be comparable")
+        })
+        .expect("Shape must not be empty")
 }
 
-impl CollisionBox {
+fn reflect_against_line(v: Vec2, line: (Vec2, Vec2)) -> Vec2 {
+    let normal = (line.1 - line.0).perp().normalize();
+
+    v - ((2.0 * v.dot(normal)) * normal)
+}
+
+pub struct CollisionBox<const L: usize> {
+    points: [Vec2; L],
+}
+
+impl CollisionBox<8> {
     pub fn from_transform(tf: &Transform, sz: &Vec2) -> Self {
         let w = sz.x * 0.5;
         let h = sz.y * 0.5;
@@ -117,9 +157,11 @@ impl CollisionBox {
             .to_array(),
         }
     }
+}
 
+impl<const L: usize> CollisionBox<L> {
     /// Test whether two rectangles are touching.
-    pub fn is_touching(&self, other: &CollisionBox) -> bool {
+    pub fn is_touching<const M: usize>(&self, other: &CollisionBox<M>) -> bool {
         other
             .points
             .iter()
@@ -134,7 +176,7 @@ impl CollisionBox {
         for w in self.points.windows(2) {
             gizmos.line_2d(w[0], w[1], Color::BLUE);
         }
-        gizmos.line_2d(self.points[7], self.points[0], Color::BLUE);
+        gizmos.line_2d(self.points[L - 1], self.points[0], Color::BLUE);
     }
 }
 
@@ -145,36 +187,124 @@ pub fn collision_detection(
     mut gizmos: Gizmos,
 ) {
     let mut colliders = query.iter_mut().collect::<Vec<_>>();
-    let mut it = colliders.pairs_mut();
-    while let Some((a, b)) = it.next() {
-        let atx = match texture_atlases.get(a.1) {
-            Some(tx) => tx,
-            None => continue,
-        };
-        let btx = match texture_atlases.get(b.1) {
-            Some(tx) => tx,
-            None => continue,
+    let mut pairs = colliders.pairs_mut();
+    // pairs_mut() does not return an iterator (due to borrowing rules) but we
+    // create a similar loop using while-let
+    while let Some(((atf, atx, av), (btf, btx, bv))) = pairs.next() {
+        let (atx, btx) = match (texture_atlases.get(*atx), texture_atlases.get(*btx)) {
+            (Some(atx), Some(btx)) => (atx, btx),
+            _ => continue,
         };
 
-        let mut abox = CollisionBox::from_transform(&a.0, &atx.size);
-        let mut bbox = CollisionBox::from_transform(&b.0, &btx.size);
+        let mut abox = CollisionBox::from_transform(&atf, &atx.size);
+        let mut bbox = CollisionBox::from_transform(&btf, &btx.size);
         if prefs.debug_low() {
             abox.draw(&mut gizmos);
             bbox.draw(&mut gizmos);
         }
 
         if abox.is_touching(&bbox) {
-            std::mem::swap(&mut a.2 .0, &mut b.2 .0);
+            std::mem::swap(&mut av.0, &mut bv.0);
 
-            let a2 = vec2(a.0.translation.x, a.0.translation.y);
-            let b2 = vec2(b.0.translation.x, b.0.translation.y);
+            let a2 = vec2(atf.translation.x, atf.translation.y);
+            let b2 = vec2(btf.translation.x, btf.translation.y);
             let nudge = Vec3::from(((b2 - a2).normalize() * 0.5, 0.0));
             while abox.is_touching(&bbox) {
-                a.0.translation -= nudge;
-                b.0.translation += nudge;
+                atf.translation -= nudge;
+                btf.translation += nudge;
 
-                abox = CollisionBox::from_transform(&a.0, &atx.size);
-                bbox = CollisionBox::from_transform(&b.0, &btx.size);
+                abox = CollisionBox::from_transform(&atf, &atx.size);
+                bbox = CollisionBox::from_transform(&btf, &btx.size);
+            }
+        }
+    }
+}
+
+pub fn fixed_collision_detection(
+    mut cars: Query<(&mut Transform, &Handle<TextureAtlas>, &mut Velocity)>,
+    scenery: Query<(&mut Transform, &objectmap::Collider, Without<Velocity>)>,
+    texture_atlases: Res<Assets<TextureAtlas>>,
+    _prefs: Res<Preferences>,
+    mut _gizmos: Gizmos,
+) {
+    for (mut car_tf, car_tx, mut car_vel) in cars.iter_mut() {
+        let car_tx = match texture_atlases.get(car_tx) {
+            Some(car_tx) => car_tx,
+            _ => continue,
+        };
+        let mut car_box = CollisionBox::from_transform(&car_tf, &car_tx.size);
+
+        for (obj_tf, collider, _) in scenery.iter() {
+            let obj_box = match collider {
+                objectmap::Collider::Tree => CollisionBox::<8> {
+                    points: [
+                        vec2(-25.0, 50.0),
+                        vec2(25.0, 50.0),
+                        vec2(50.0, 25.0),
+                        vec2(50.0, -25.0),
+                        vec2(25.0, -50.0),
+                        vec2(-25.0, -50.0),
+                        vec2(-50.0, -25.0),
+                        vec2(-50.0, 25.0),
+                    ]
+                    .iter()
+                    .map(|v2| {
+                        let v3 = Vec3::from((*v2, 0.0));
+                        let pt = obj_tf.transform_point(v3);
+                        vec2(pt.x, pt.y)
+                    })
+                    .to_array(),
+                },
+                objectmap::Collider::Block => CollisionBox::<8> {
+                    points: [
+                        vec2(-224.0, 112.0),
+                        vec2(0.0, 112.0),
+                        vec2(224.0, 112.0),
+                        vec2(224.0, 0.0),
+                        vec2(224.0, -112.0),
+                        vec2(0.0, -112.0),
+                        vec2(-224.0, -112.0),
+                        vec2(-224.0, 0.0),
+                    ]
+                    .iter()
+                    .map(|v2| {
+                        let v3 = Vec3::from((*v2, 0.0));
+                        let pt = obj_tf.transform_point(v3);
+                        vec2(pt.x, pt.y)
+                    })
+                    .to_array(),
+                },
+            };
+
+            if car_box
+                .points
+                .iter()
+                .any(|pt| point_in_polygon(*pt, &obj_box.points))
+            {
+                //car_vel.0 = vec2(-car_vel.0.x, -car_vel.0.y);
+                let pt = car_box
+                    .points
+                    .iter()
+                    .find(|pt| point_in_polygon(**pt, &obj_box.points))
+                    .unwrap();
+                let line = closest_edge_to_point(*pt, &obj_box.points);
+                car_vel.0 = reflect_against_line(car_vel.0, line);
+
+                while car_box.is_touching(&obj_box) {
+                    car_tf.translation += Vec3::from((car_vel.0.normalize(), 0.0));
+                    car_box = CollisionBox::from_transform(&car_tf, &car_tx.size);
+                }
+            } else if obj_box
+                .points
+                .iter()
+                .any(|pt| point_in_polygon(*pt, &car_box.points))
+            {
+                car_vel.0 = vec2(-car_vel.0.x, -car_vel.0.y);
+
+                while car_box.is_touching(&obj_box) {
+                    car_tf.translation += Vec3::from((car_vel.0.normalize(), 0.0));
+                    car_box = CollisionBox::from_transform(&car_tf, &car_tx.size);
+                }
             }
         }
     }

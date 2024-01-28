@@ -12,6 +12,7 @@ mod assets;
 mod dashboard;
 mod editor;
 mod mapping;
+mod objectmap;
 mod physics;
 mod tilemap;
 mod util;
@@ -69,6 +70,7 @@ fn main() {
             editor::Plugin,
             ecs_tilemap::TilemapPlugin,
             mapping::Plugin,
+            objectmap::Plugin,
             tilemap::TiledMapPlugin,
             dashboard::Plugin,
         ))
@@ -92,6 +94,7 @@ fn main() {
                     .after(physics::apply_velocity)
                     .after(handle_keyboard)
                     .after(handle_ai_players),
+                physics::fixed_collision_detection.after(physics::collision_detection),
             ),
         )
         .run();
