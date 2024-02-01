@@ -9,7 +9,7 @@ use bevy::{
     prelude::*,
 };
 
-use crate::tilemap;
+use crate::{geometry::Polygon, physics, tilemap};
 
 #[derive(Default)]
 pub struct Plugin;
@@ -54,12 +54,37 @@ fn spawn_object(
         None,
     );
 
+    let polygon = if img.source.to_str().unwrap().contains("tree") {
+        [
+            vec2(-25.0, 50.0),
+            vec2(25.0, 50.0),
+            vec2(50.0, 25.0),
+            vec2(50.0, -25.0),
+            vec2(25.0, -50.0),
+            vec2(-25.0, -50.0),
+            vec2(-50.0, -25.0),
+            vec2(-50.0, 25.0),
+        ]
+        .into_iter()
+        .collect::<Polygon>()
+    } else {
+        [
+            vec2(-224.0, 112.0),
+            vec2(224.0, 112.0),
+            vec2(224.0, -112.0),
+            vec2(-224.0, -112.0),
+        ]
+        .into_iter()
+        .collect::<Polygon>()
+    };
+
     commands.spawn((
         if img.source.to_str().unwrap().contains("tree") {
             Collider::Tree
         } else {
             Collider::Block
         },
+        physics::CollisionBox(polygon),
         SpriteSheetBundle {
             texture_atlas: texture_atlas.add(atlas),
             transform: Transform {

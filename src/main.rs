@@ -3,7 +3,12 @@
 
 #![allow(clippy::type_complexity)]
 
-use bevy::{math::vec3, prelude::*, render::camera::ScalingMode, window};
+use bevy::{
+    math::{vec2, vec3},
+    prelude::*,
+    render::camera::ScalingMode,
+    window,
+};
 use bevy_ecs_tilemap::prelude as ecs_tilemap;
 use clap::Parser;
 use std::f32::consts::PI;
@@ -11,6 +16,7 @@ use std::f32::consts::PI;
 mod assets;
 mod dashboard;
 mod editor;
+mod geometry;
 mod mapping;
 mod objectmap;
 mod physics;
@@ -134,9 +140,12 @@ fn spawn_player(
     mut texture_atlas: ResMut<Assets<TextureAtlas>>,
     asset_server: Res<AssetServer>,
 ) {
+    let sz = vec2(70., 121.);
+    let polygon = geometry::Polygon::from_diagonal(&sz);
+
     let atlas = TextureAtlas::from_grid(
         asset_server.load("embedded://tdr2024/assets/kenney_racing-pack/PNG/Cars/car_red_5.png"),
-        Vec2::new(70., 121.),
+        sz,
         1,
         1,
         None,
@@ -147,6 +156,7 @@ fn spawn_player(
         Player,
         Racer::default(),
         physics::Angle(0.0),
+        physics::CollisionBox(polygon),
         physics::Velocity(Vec2::new(0.0, 20.0)),
         SpriteSheetBundle {
             texture_atlas: texture_atlas.add(atlas),
@@ -165,13 +175,17 @@ fn spawn_ai_players(
     mut texture_atlas: ResMut<Assets<TextureAtlas>>,
     asset_server: Res<AssetServer>,
 ) {
+    let sz = vec2(70., 121.);
+    let polygon = geometry::Polygon::from_diagonal(&sz);
+
     let handle =
         asset_server.load("embedded://tdr2024/assets/kenney_racing-pack/PNG/Cars/car_blue_1.png");
-    let atlas = TextureAtlas::from_grid(handle, Vec2::new(70., 121.), 1, 1, None, None);
+    let atlas = TextureAtlas::from_grid(handle, sz, 1, 1, None, None);
 
     commands.spawn((
         Racer::default(),
         physics::Angle(PI / 12.0),
+        physics::CollisionBox(polygon.clone()),
         physics::Velocity(Vec2::new(0.0, 20.0)),
         SpriteSheetBundle {
             texture_atlas: texture_atlas.add(atlas),
@@ -190,6 +204,7 @@ fn spawn_ai_players(
     commands.spawn((
         Racer::default(),
         physics::Angle(PI / 12.0),
+        physics::CollisionBox(polygon.clone()),
         physics::Velocity(Vec2::new(0.0, 20.0)),
         SpriteSheetBundle {
             texture_atlas: texture_atlas.add(atlas),
@@ -208,6 +223,7 @@ fn spawn_ai_players(
     commands.spawn((
         Racer::default(),
         physics::Angle(PI / 12.0),
+        physics::CollisionBox(polygon.clone()),
         physics::Velocity(Vec2::new(0.0, 20.0)),
         SpriteSheetBundle {
             texture_atlas: texture_atlas.add(atlas),

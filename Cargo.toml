@@ -13,6 +13,7 @@ thiserror = "1.0.52"
 itertools = "0.12.0"
 slicetools = "0.3.0"
 clap = { version = "4.4.16", features = ["derive"] }
+smallvec = "1.13.1"
 
 [features]
 editor = ["dep:bevy_editor_pls"]
