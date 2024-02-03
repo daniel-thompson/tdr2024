@@ -99,9 +99,16 @@ pub fn collision_detection(
 pub fn fixed_collision_detection(
     mut cars: Query<(&CollisionBox, &mut Transform, &mut Velocity)>,
     scenery: Query<(&CollisionBox, &mut Transform, Without<Velocity>)>,
-    _prefs: Res<Preferences>,
-    mut _gizmos: Gizmos,
+    prefs: Res<Preferences>,
+    mut gizmos: Gizmos,
 ) {
+    if prefs.debug_low() {
+        for (CollisionBox(obj_poly), obj_tf, _) in scenery.iter() {
+            let obj_box = obj_poly.transform(&obj_tf);
+            obj_box.draw(&mut gizmos);
+        }
+    }
+
     for (CollisionBox(car_poly), mut car_tf, mut car_vel) in cars.iter_mut() {
         let mut car_box = car_poly.transform(&car_tf);
 
