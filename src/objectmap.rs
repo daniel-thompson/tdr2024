@@ -55,27 +55,10 @@ fn spawn_object(
     );
 
     let polygon = if img.source.to_str().unwrap().contains("tree") {
-        [
-            vec2(-25.0, 50.0),
-            vec2(25.0, 50.0),
-            vec2(50.0, 25.0),
-            vec2(50.0, -25.0),
-            vec2(25.0, -50.0),
-            vec2(-25.0, -50.0),
-            vec2(-50.0, -25.0),
-            vec2(-50.0, 25.0),
-        ]
-        .into_iter()
-        .collect::<Polygon>()
+        let v = vec2(img.width as f32, img.height as f32) * 0.5;
+        Polygon::from_vec_with_rounding(&v, 0.4)
     } else {
-        [
-            vec2(-224.0, 112.0),
-            vec2(224.0, 112.0),
-            vec2(224.0, -112.0),
-            vec2(-224.0, -112.0),
-        ]
-        .into_iter()
-        .collect::<Polygon>()
+        Polygon::from_vec(&vec2(img.width as f32, img.height as f32))
     };
 
     commands.spawn((

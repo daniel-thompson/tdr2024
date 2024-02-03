@@ -55,15 +55,21 @@ impl FromIterator<Vec2> for Polygon {
 }
 
 impl Polygon {
-    pub fn from_diagonal(sz: &Vec2) -> Self {
-        let w = sz.x * 0.5;
-        let h = sz.y * 0.5;
+    pub fn from_vec(sz: &Vec2) -> Self {
+        let (w, h) = (sz.x / 2., sz.y / 2.);
+        [vec2(-w, h), vec2(w, h), vec2(w, -h), vec2(-w, -h)]
+            .into_iter()
+            .collect()
+    }
 
-        // c is used to round the corners of the box, choosing
-        // 2.5 is a little arbitrary but it gives a good "feel"
-        // for most artwork... and you could handle special cases
-        // by creating the box by hand.
-        let c = w.min(h) / 2.5;
+    /// Create an octagon from a single vector and a roundness factor.
+    ///
+    /// The roundness factor is, effectively, the percentage of the
+    /// shortest edge that will be preserved on each side.
+    pub fn from_vec_with_rounding(sz: &Vec2, percent: f32) -> Self {
+        let (w, h) = (sz.x / 2., sz.y / 2.);
+        let m = w.min(h);
+        let c = m - (m * percent);
 
         [
             vec2(c - w, h),

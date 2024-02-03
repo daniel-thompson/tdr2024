@@ -141,17 +141,10 @@ fn spawn_player(
     asset_server: Res<AssetServer>,
 ) {
     let sz = vec2(70., 121.);
-    let polygon = geometry::Polygon::from_diagonal(&sz);
+    let polygon = geometry::Polygon::from_vec_with_rounding(&sz, 0.6);
 
-    let atlas = TextureAtlas::from_grid(
-        asset_server.load("embedded://tdr2024/assets/kenney_racing-pack/PNG/Cars/car_red_5.png"),
-        sz,
-        1,
-        1,
-        None,
-        None,
-    );
-
+    let handle =
+        asset_server.load("embedded://tdr2024/assets/kenney_racing-pack/PNG/Cars/car_red_5.png");
     commands.spawn((
         Player,
         Racer::default(),
@@ -159,7 +152,7 @@ fn spawn_player(
         physics::CollisionBox(polygon),
         physics::Velocity(Vec2::new(0.0, 20.0)),
         SpriteSheetBundle {
-            texture_atlas: texture_atlas.add(atlas),
+            texture_atlas: texture_atlas.add(TextureAtlas::from_grid(handle, sz, 1, 1, None, None)),
             transform: Transform {
                 translation: vec3(-1000.0, 0.0, 3.0),
                 scale: Vec3::splat(1.),
@@ -176,19 +169,17 @@ fn spawn_ai_players(
     asset_server: Res<AssetServer>,
 ) {
     let sz = vec2(70., 121.);
-    let polygon = geometry::Polygon::from_diagonal(&sz);
+    let polygon = geometry::Polygon::from_vec_with_rounding(&sz, 0.6);
 
     let handle =
         asset_server.load("embedded://tdr2024/assets/kenney_racing-pack/PNG/Cars/car_blue_1.png");
-    let atlas = TextureAtlas::from_grid(handle, sz, 1, 1, None, None);
-
     commands.spawn((
         Racer::default(),
         physics::Angle(PI / 12.0),
         physics::CollisionBox(polygon.clone()),
         physics::Velocity(Vec2::new(0.0, 20.0)),
         SpriteSheetBundle {
-            texture_atlas: texture_atlas.add(atlas),
+            texture_atlas: texture_atlas.add(TextureAtlas::from_grid(handle, sz, 1, 1, None, None)),
             transform: Transform {
                 translation: Vec3::new(0.0, 0.0, 2.0),
                 scale: Vec3::splat(1.),
@@ -200,14 +191,13 @@ fn spawn_ai_players(
 
     let handle =
         asset_server.load("embedded://tdr2024/assets/kenney_racing-pack/PNG/Cars/car_yellow_3.png");
-    let atlas = TextureAtlas::from_grid(handle, Vec2::new(70., 121.), 1, 1, None, None);
     commands.spawn((
         Racer::default(),
         physics::Angle(PI / 12.0),
         physics::CollisionBox(polygon.clone()),
         physics::Velocity(Vec2::new(0.0, 20.0)),
         SpriteSheetBundle {
-            texture_atlas: texture_atlas.add(atlas),
+            texture_atlas: texture_atlas.add(TextureAtlas::from_grid(handle, sz, 1, 1, None, None)),
             transform: Transform {
                 translation: Vec3::new(-333.3, 0.0, 2.0),
                 scale: Vec3::splat(1.),
@@ -219,14 +209,13 @@ fn spawn_ai_players(
 
     let handle =
         asset_server.load("embedded://tdr2024/assets/kenney_racing-pack/PNG/Cars/car_green_4.png");
-    let atlas = TextureAtlas::from_grid(handle, Vec2::new(70., 121.), 1, 1, None, None);
     commands.spawn((
         Racer::default(),
         physics::Angle(PI / 12.0),
         physics::CollisionBox(polygon.clone()),
         physics::Velocity(Vec2::new(0.0, 20.0)),
         SpriteSheetBundle {
-            texture_atlas: texture_atlas.add(atlas),
+            texture_atlas: texture_atlas.add(TextureAtlas::from_grid(handle, sz, 1, 1, None, None)),
             transform: Transform {
                 translation: Vec3::new(-666.6, 0.0, 2.0),
                 scale: Vec3::splat(1.),
