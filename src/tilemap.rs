@@ -233,7 +233,7 @@ pub fn process_loaded_maps(
                 // tilesets on each layer and allows differently-sized tile images in each tileset,
                 // this means we need to load each combination of tileset and layer separately.
                 for (tileset_index, tileset) in tiled_map.map.tilesets().iter().enumerate() {
-                    if tileset.name == "Objects" {
+                    if tileset.name == "Objects" || tileset.name == "Vehicles" {
                         // The "Objects" tileset has mismatched sizes and we need to skip it
                         //  when creating a tilemap.
                         continue;

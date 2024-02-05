@@ -115,26 +115,24 @@ pub fn fixed_collision_detection(
         for (CollisionBox(obj_poly), obj_tf, _) in scenery.iter() {
             let obj_box = obj_poly.transform(&obj_tf);
 
-            // This can be a single if/let
-            if car_box.shape.iter().any(|pt| obj_box.contains_point(*pt)) {
-                //car_vel.0 = vec2(-car_vel.0.x, -car_vel.0.y);
-                let pt = car_box
-                    .shape
-                    .iter()
-                    .find(|pt| obj_box.contains_point(**pt))
-                    .unwrap();
-                let line = obj_box.closest_edge_to_point(*pt);
-                car_vel.0 = reflect_against_line(car_vel.0, line);
-
-                while car_box.is_touching(&obj_box) {
-                    car_tf.translation += Vec3::from((car_vel.0.normalize(), 0.0));
-                    car_box = car_poly.transform(&car_tf);
+            if car_box.is_touching(&obj_box) {
+                let car_pt = car_box.iter().find(|&&pt| obj_box.contains_point(pt));
+                if let Some(&pt) = car_pt {
+                    car_vel.0 = reflect_against_line(car_vel.0, obj_box.closest_edge_to_point(pt));
+                } else if let Some((&prev, &pt, &next)) = obj_box
+                    .iter_segments()
+                    .find(|(_, &pt, _)| car_box.contains_point(pt))
+                {
+                    car_vel.0 = reflect_against_segment(car_vel.0, (prev, pt, next));
+                } else {
+                    unreachable!();
                 }
-            } else if obj_box.shape.iter().any(|pt| car_box.contains_point(*pt)) {
-                car_vel.0 = vec2(-car_vel.0.x, -car_vel.0.y);
 
+                let ct = vec2(car_tf.translation.x, car_tf.translation.y);
+                let ot = vec2(obj_tf.translation.x, obj_tf.translation.y);
+                let nudge = Vec3::from(((ct - ot).normalize(), 0.0));
                 while car_box.is_touching(&obj_box) {
-                    car_tf.translation += Vec3::from((car_vel.0.normalize(), 0.0));
+                    car_tf.translation += nudge;
                     car_box = car_poly.transform(&car_tf);
                 }
             }

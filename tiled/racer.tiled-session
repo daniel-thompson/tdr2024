@@ -1,5 +1,5 @@
 {
-    "activeFile": "level2.tmx",
+    "activeFile": "level1.tmx",
     "expandedProjectPaths": [
     ],
     "file.lastUsedOpenFilter": "All Files (*)",
@@ -22,23 +22,26 @@
             "scaleInEditor": 1
         },
         "grass.tsx": {
-            "scaleInDock": 0.8,
+            "scaleInDock": 0.5,
             "scaleInEditor": 1
         },
         "level1.tmx": {
-            "scale": 0.33,
-            "selectedLayer": 0,
+            "expandedObjectLayers": [
+                9
+            ],
+            "scale": 0.5,
+            "selectedLayer": 2,
             "viewCenter": {
-                "x": 3433.333333333333,
-                "y": 2022.727272727273
+                "x": 1544,
+                "y": 1113
             }
         },
         "level2.tmx": {
             "scale": 0.3252,
-            "selectedLayer": 1,
+            "selectedLayer": 2,
             "viewCenter": {
-                "x": 1682.041820418204,
-                "y": 1160.8241082410825
+                "x": 2478.4747847478475,
+                "y": 730.319803198032
             }
         },
         "level2.tmx#Asphalt road": {
@@ -46,12 +49,17 @@
         },
         "objects.tsx": {
             "dynamicWrapping": true,
+            "scaleInDock": 0.5,
+            "scaleInEditor": 1
+        },
+        "vehicles.tsx": {
+            "dynamicWrapping": true,
             "scaleInDock": 1,
             "scaleInEditor": 1
         }
     },
     "last.exportedFilePath": "/home/drt/Projects/daniel-thompson/tdr2024/src/assets",
-    "last.imagePath": "/home/drt/Projects/daniel-thompson/tdr2024/src/assets/kenney_racing-pack/PNG/Objects",
+    "last.imagePath": "/home/drt/Projects/daniel-thompson/tdr2024/src/assets/kenney_racing-pack/PNG/Cars",
     "map.lastUsedExportFilter": "All Files (*)",
     "openFiles": [
         "level1.tmx",
@@ -59,10 +67,11 @@
     ],
     "project": "racer.tiled-project",
     "recentFiles": [
-        "grass.tsx",
-        "objects.tsx",
+        "level2.tmx",
         "level1.tmx",
-        "level2.tmx"
+        "vehicles.tsx",
+        "grass.tsx",
+        "objects.tsx"
     ],
     "tileset.lastUsedFormat": "tsx",
     "tileset.type": 1

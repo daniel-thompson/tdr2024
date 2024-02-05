@@ -8,8 +8,9 @@ use bevy::{
     math::{vec2, vec3},
     prelude::*,
 };
+use std::f32::consts::PI;
 
-use crate::{geometry::Polygon, physics, tilemap};
+use crate::{geometry::Polygon, physics, tilemap, Player, Racer};
 
 #[derive(Default)]
 pub struct Plugin;
@@ -20,12 +21,6 @@ impl bevy::app::Plugin for Plugin {
     }
 }
 
-#[derive(Component, Debug)]
-pub enum Collider {
-    Tree,
-    Block,
-}
-
 fn spawn_object(
     map: &tiled::Map,
     obj: &tiled::Object,
@@ -34,50 +29,93 @@ fn spawn_object(
     texture_atlas: &mut Assets<TextureAtlas>,
     asset_server: &AssetServer,
 ) {
+    let img_src = img.source.to_str().unwrap();
+
+    let sz = vec2(img.width as f32, img.height as f32);
+    let polygon = if img_src.contains("tree") {
+        Polygon::from_vec_with_rounding(&(sz * 0.5), 40.)
+    } else if img_src.contains("tires") {
+        Polygon::from_vec_with_rounding(&sz, 40.)
+    } else if img_src.contains("car") {
+        Polygon::from_vec_with_rounding(&sz, 60.)
+    } else {
+        Polygon::from_vec(&sz)
+    };
+
     let (w, h) = (
         (map.width * map.tile_width) as f32,
         (map.height * map.tile_height) as f32,
     );
-    let (x, y) = (
+
+    // tiled rotates objects from the bottom-left but bevy rotates objects
+    // from the centre. that means we need to fix up the translation.
+    let rotation = Quat::from_rotation_z(-obj.rotation * PI / 4.0);
+    let shift = Vec3::from((sz / 2.0, 0.0));
+    let restore = rotation.mul_vec3(shift);
+    let translation = vec3(
         obj.x - ((w - img.width as f32) / 2.0),
         -obj.y + ((h + img.height as f32) / 2.0),
-    );
+        2.0,
+    ) - shift
+        + restore;
+
     let mut path = std::path::PathBuf::from("embedded://");
     path.push(&img.source);
 
-    let atlas = TextureAtlas::from_grid(
-        asset_server.load(path.to_str().expect("tile_path is not UTF-8").to_string()),
-        vec2(img.width as f32, img.height as f32),
-        1,
-        1,
-        None,
-        None,
-    );
+    let handle = asset_server.load(path.to_str().expect("tile_path is not UTF-8").to_string());
 
-    let polygon = if img.source.to_str().unwrap().contains("tree") {
-        let v = vec2(img.width as f32, img.height as f32) * 0.5;
-        Polygon::from_vec_with_rounding(&v, 0.4)
-    } else {
-        Polygon::from_vec(&vec2(img.width as f32, img.height as f32))
-    };
-
-    commands.spawn((
-        if img.source.to_str().unwrap().contains("tree") {
-            Collider::Tree
+    if img_src.contains("car") {
+        if img_src.contains("red") {
+            commands.spawn((
+                Player,
+                Racer::default(),
+                physics::Angle(PI / 12.0),
+                physics::CollisionBox(polygon.clone()),
+                physics::Velocity(Vec2::new(0.0, 20.0)),
+                SpriteSheetBundle {
+                    texture_atlas: texture_atlas
+                        .add(TextureAtlas::from_grid(handle, sz, 1, 1, None, None)),
+                    transform: Transform {
+                        translation,
+                        rotation,
+                        scale: Vec3::splat(1.),
+                    },
+                    ..default()
+                },
+            ));
         } else {
-            Collider::Block
-        },
-        physics::CollisionBox(polygon),
-        SpriteSheetBundle {
-            texture_atlas: texture_atlas.add(atlas),
-            transform: Transform {
-                translation: vec3(x, y, 5.0),
-                scale: Vec3::splat(1.),
+            commands.spawn((
+                Racer::default(),
+                physics::Angle(PI / 12.0),
+                physics::CollisionBox(polygon.clone()),
+                physics::Velocity(Vec2::new(0.0, 20.0)),
+                SpriteSheetBundle {
+                    texture_atlas: texture_atlas
+                        .add(TextureAtlas::from_grid(handle, sz, 1, 1, None, None)),
+                    transform: Transform {
+                        translation,
+                        rotation,
+                        scale: Vec3::splat(1.),
+                    },
+                    ..default()
+                },
+            ));
+        }
+    } else {
+        commands.spawn((
+            physics::CollisionBox(polygon),
+            SpriteSheetBundle {
+                texture_atlas: texture_atlas
+                    .add(TextureAtlas::from_grid(handle, sz, 1, 1, None, None)),
+                transform: Transform {
+                    translation: translation + vec3(0., 0., 3.),
+                    rotation,
+                    scale: Vec3::splat(1.),
+                },
                 ..default()
             },
-            ..default()
-        },
-    ));
+        ));
+    }
 }
 
 /// Grub about in the bowels of the tiled data, iterating over each

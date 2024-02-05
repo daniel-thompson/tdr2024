@@ -3,12 +3,7 @@
 
 #![allow(clippy::type_complexity)]
 
-use bevy::{
-    math::{vec2, vec3},
-    prelude::*,
-    render::camera::ScalingMode,
-    window,
-};
+use bevy::{prelude::*, render::camera::ScalingMode, window};
 use bevy_ecs_tilemap::prelude as ecs_tilemap;
 use clap::Parser;
 use std::f32::consts::PI;
@@ -82,10 +77,7 @@ fn main() {
         ))
         .insert_resource(ClearColor(Color::rgb_linear(0.153, 0.682, 0.376)))
         .insert_resource(args)
-        .add_systems(
-            Startup,
-            (load_maps, spawn_camera, spawn_player, spawn_ai_players),
-        )
+        .add_systems(Startup, (load_maps, spawn_camera))
         .add_systems(
             Update,
             (
@@ -135,97 +127,6 @@ fn load_maps(mut commands: Commands, asset_server: Res<AssetServer>, prefs: Res<
     });
 }
 
-fn spawn_player(
-    mut commands: Commands,
-    mut texture_atlas: ResMut<Assets<TextureAtlas>>,
-    asset_server: Res<AssetServer>,
-) {
-    let sz = vec2(70., 121.);
-    let polygon = geometry::Polygon::from_vec_with_rounding(&sz, 0.6);
-
-    let handle =
-        asset_server.load("embedded://tdr2024/assets/kenney_racing-pack/PNG/Cars/car_red_5.png");
-    commands.spawn((
-        Player,
-        Racer::default(),
-        physics::Angle(0.0),
-        physics::CollisionBox(polygon),
-        physics::Velocity(Vec2::new(0.0, 20.0)),
-        SpriteSheetBundle {
-            texture_atlas: texture_atlas.add(TextureAtlas::from_grid(handle, sz, 1, 1, None, None)),
-            transform: Transform {
-                translation: vec3(-1000.0, 0.0, 3.0),
-                scale: Vec3::splat(1.),
-                ..default()
-            },
-            ..default()
-        },
-    ));
-}
-
-fn spawn_ai_players(
-    mut commands: Commands,
-    mut texture_atlas: ResMut<Assets<TextureAtlas>>,
-    asset_server: Res<AssetServer>,
-) {
-    let sz = vec2(70., 121.);
-    let polygon = geometry::Polygon::from_vec_with_rounding(&sz, 0.6);
-
-    let handle =
-        asset_server.load("embedded://tdr2024/assets/kenney_racing-pack/PNG/Cars/car_blue_1.png");
-    commands.spawn((
-        Racer::default(),
-        physics::Angle(PI / 12.0),
-        physics::CollisionBox(polygon.clone()),
-        physics::Velocity(Vec2::new(0.0, 20.0)),
-        SpriteSheetBundle {
-            texture_atlas: texture_atlas.add(TextureAtlas::from_grid(handle, sz, 1, 1, None, None)),
-            transform: Transform {
-                translation: Vec3::new(0.0, 0.0, 2.0),
-                scale: Vec3::splat(1.),
-                ..default()
-            },
-            ..default()
-        },
-    ));
-
-    let handle =
-        asset_server.load("embedded://tdr2024/assets/kenney_racing-pack/PNG/Cars/car_yellow_3.png");
-    commands.spawn((
-        Racer::default(),
-        physics::Angle(PI / 12.0),
-        physics::CollisionBox(polygon.clone()),
-        physics::Velocity(Vec2::new(0.0, 20.0)),
-        SpriteSheetBundle {
-            texture_atlas: texture_atlas.add(TextureAtlas::from_grid(handle, sz, 1, 1, None, None)),
-            transform: Transform {
-                translation: Vec3::new(-333.3, 0.0, 2.0),
-                scale: Vec3::splat(1.),
-                ..default()
-            },
-            ..default()
-        },
-    ));
-
-    let handle =
-        asset_server.load("embedded://tdr2024/assets/kenney_racing-pack/PNG/Cars/car_green_4.png");
-    commands.spawn((
-        Racer::default(),
-        physics::Angle(PI / 12.0),
-        physics::CollisionBox(polygon.clone()),
-        physics::Velocity(Vec2::new(0.0, 20.0)),
-        SpriteSheetBundle {
-            texture_atlas: texture_atlas.add(TextureAtlas::from_grid(handle, sz, 1, 1, None, None)),
-            transform: Transform {
-                translation: Vec3::new(-666.6, 0.0, 2.0),
-                scale: Vec3::splat(1.),
-                ..default()
-            },
-            ..default()
-        },
-    ));
-}
-
 fn handle_keyboard(
     mut query: Query<(
         &mut physics::Angle,
@@ -239,7 +140,10 @@ fn handle_keyboard(
 ) {
     let delta = time.delta_seconds();
 
-    let (mut a, mut v, mut t, mut r, _) = query.single_mut();
+    let (mut a, mut v, mut t, mut r, _) = match query.iter_mut().next() {
+        Some(t) => t,
+        None => return,
+    };
 
     if r.penalty > 0.0 {
         r.penalty = if r.penalty < delta {
@@ -341,11 +245,11 @@ fn track_player(
     player: Query<(&Transform, &physics::Velocity, With<Player>)>,
     mut camera: Query<(&mut Transform, With<Camera>, Without<Player>)>,
 ) {
-    let (txp, _, _) = player.single();
-
-    for (mut txc, _, _) in camera.iter_mut() {
-        txc.translation.x = txp.translation.x;
-        txc.translation.y = txp.translation.y;
-        //txc.rotation = txp.rotation;
+    for (txp, _, _) in player.iter() {
+        for (mut txc, _, _) in camera.iter_mut() {
+            txc.translation.x = txp.translation.x;
+            txc.translation.y = txp.translation.y;
+            //txc.rotation = txp.rotation;
+        }
     }
 }

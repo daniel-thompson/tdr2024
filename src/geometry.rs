@@ -2,6 +2,7 @@
 // Copyright (C) 2023-2024 Daniel Thompson
 
 use bevy::{math::vec2, prelude::*};
+use itertools::Itertools;
 use smallvec::SmallVec;
 
 fn same_side(p1: Vec2, p2: Vec2, line: (Vec2, Vec2)) -> bool {
@@ -41,9 +42,27 @@ pub fn reflect_against_line(v: Vec2, line: (Vec2, Vec2)) -> Vec2 {
     v - ((2.0 * v.dot(normal)) * normal)
 }
 
+pub fn reflect_against_segment(v: Vec2, segment: (Vec2, Vec2, Vec2)) -> Vec2 {
+    let n1 = (segment.1 - segment.0).perp().normalize();
+    let n2 = (segment.2 - segment.1).perp().normalize();
+    let semi_normal = (n1 + n2).normalize();
+
+    v - ((2.0 * v.dot(semi_normal)) * semi_normal)
+}
+
+/// A polygon, represented as a series of points.
+///
+/// In principle we could support any number of sides. However the internal
+/// representation is private so only shapes supported by the factory
+/// functions can ever exist. At present this means all shapes are either
+/// rectangles or octagons (meaning the internal SmallVec is always allocated
+/// on the stack.
+///
+/// Some of the algorithms used require that the polygon be convex. This
+/// property is guarantees by all current factory functions.
 #[derive(Clone, Debug)]
 pub struct Polygon {
-    pub shape: SmallVec<[Vec2; 8]>,
+    shape: SmallVec<[Vec2; 8]>,
 }
 
 impl FromIterator<Vec2> for Polygon {
@@ -56,6 +75,7 @@ impl FromIterator<Vec2> for Polygon {
 
 impl Polygon {
     pub fn from_vec(sz: &Vec2) -> Self {
+        assert!(sz.x > 0. && sz.y > 0.);
         let (w, h) = (sz.x / 2., sz.y / 2.);
         [vec2(-w, h), vec2(w, h), vec2(w, -h), vec2(-w, -h)]
             .into_iter()
@@ -67,9 +87,11 @@ impl Polygon {
     /// The roundness factor is, effectively, the percentage of the
     /// shortest edge that will be preserved on each side.
     pub fn from_vec_with_rounding(sz: &Vec2, percent: f32) -> Self {
+        assert!(sz.x > 0. && sz.y > 0.);
+        assert!(percent > 0. && percent < 100.);
         let (w, h) = (sz.x / 2., sz.y / 2.);
         let m = w.min(h);
-        let c = m - (m * percent);
+        let c = m - (0.01 * m * percent);
 
         [
             vec2(c - w, h),
@@ -86,41 +108,43 @@ impl Polygon {
     }
 
     pub fn contains_point(&self, pt: Vec2) -> bool {
-        let shape = self.shape.as_slice();
-        let n = shape.len();
-        shape
-            .windows(3)
-            .chain(std::iter::once(
-                [shape[n - 2], shape[n - 1], shape[0]].as_slice(),
-            ))
-            .chain(std::iter::once(
-                [shape[n - 1], shape[0], shape[1]].as_slice(),
-            ))
-            .all(|x| same_side(pt, x[0], (x[1], x[2])))
+        self.iter_segments()
+            .all(|(&a, &b, &c)| same_side(pt, a, (b, c)))
     }
 
     pub fn closest_edge_to_point(&self, pt: Vec2) -> (Vec2, Vec2) {
-        let shape = self.shape.as_slice();
-        let n = shape.len();
-        shape
-            .windows(2)
-            .chain(std::iter::once([shape[n - 1], shape[0]].as_slice()))
-            .map(|line| (line[0], line[1]))
-            .min_by(|a, b| {
-                distance_to_line(pt, *a)
-                    .partial_cmp(&distance_to_line(pt, *b))
+        self.iter_lines()
+            .map(|(&a, &b)| (a, b))
+            .min_by(|&a, &b| {
+                distance_to_line(pt, a)
+                    .partial_cmp(&distance_to_line(pt, b))
                     .expect("Floating point numbers must be comparable")
             })
             .expect("Shape must not be empty")
     }
 
     pub fn draw(&self, gizmos: &mut Gizmos) {
-        let shape = self.shape.as_slice();
-        let n = shape.len();
-        for w in shape.windows(2) {
-            gizmos.line_2d(w[0], w[1], Color::BLUE);
+        for (&a, &b) in self.iter_lines() {
+            gizmos.line_2d(a, b, Color::BLUE);
         }
-        gizmos.line_2d(shape[n - 1], shape[0], Color::BLUE);
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &Vec2> + '_ {
+        self.shape.iter()
+    }
+
+    pub fn iter_lines(&self) -> impl Iterator<Item = (&Vec2, &Vec2)> {
+        let slice = self.shape.as_slice();
+        slice.iter().chain(&slice[0..1]).tuple_windows()
+    }
+
+    pub fn iter_segments(&self) -> impl Iterator<Item = (&Vec2, &Vec2, &Vec2)> {
+        let slice = self.shape.as_slice();
+        slice.iter().chain(&slice[0..2]).tuple_windows()
+    }
+
+    pub fn _iter_mut(&mut self) -> std::slice::IterMut<'_, Vec2> {
+        self.shape.iter_mut()
     }
 
     /// Test whether two rectangles are touching.

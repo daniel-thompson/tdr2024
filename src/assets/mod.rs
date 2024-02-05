@@ -22,10 +22,31 @@ impl bevy::prelude::Plugin for Plugin {
         embedded_asset!(app, p, "speeddial.png");
         embedded_asset!(app, p, "speedneedle.png");
 
-        racepack_png!(app, p, "Cars/car_red_5.png");
+        racepack_png!(app, p, "Cars/car_black_1.png");
+        racepack_png!(app, p, "Cars/car_black_2.png");
+        racepack_png!(app, p, "Cars/car_black_3.png");
+        racepack_png!(app, p, "Cars/car_black_4.png");
+        racepack_png!(app, p, "Cars/car_black_5.png");
         racepack_png!(app, p, "Cars/car_blue_1.png");
-        racepack_png!(app, p, "Cars/car_yellow_3.png");
+        racepack_png!(app, p, "Cars/car_blue_2.png");
+        racepack_png!(app, p, "Cars/car_blue_3.png");
+        racepack_png!(app, p, "Cars/car_blue_4.png");
+        racepack_png!(app, p, "Cars/car_blue_5.png");
+        racepack_png!(app, p, "Cars/car_green_1.png");
+        racepack_png!(app, p, "Cars/car_green_2.png");
+        racepack_png!(app, p, "Cars/car_green_3.png");
         racepack_png!(app, p, "Cars/car_green_4.png");
+        racepack_png!(app, p, "Cars/car_green_5.png");
+        racepack_png!(app, p, "Cars/car_red_1.png");
+        racepack_png!(app, p, "Cars/car_red_2.png");
+        racepack_png!(app, p, "Cars/car_red_3.png");
+        racepack_png!(app, p, "Cars/car_red_4.png");
+        racepack_png!(app, p, "Cars/car_red_5.png");
+        racepack_png!(app, p, "Cars/car_yellow_1.png");
+        racepack_png!(app, p, "Cars/car_yellow_2.png");
+        racepack_png!(app, p, "Cars/car_yellow_3.png");
+        racepack_png!(app, p, "Cars/car_yellow_4.png");
+        racepack_png!(app, p, "Cars/car_yellow_5.png");
 
         racepack_png!(app, p, "Objects/arrow_white.png");
         racepack_png!(app, p, "Objects/arrow_yellow.png");

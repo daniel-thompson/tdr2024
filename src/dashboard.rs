@@ -94,7 +94,10 @@ fn update_speedo(
     player: Query<(&physics::Velocity, With<Player>)>,
     mut speedo: Query<(&mut Transform, With<Speedometer>)>,
 ) {
-    let (vp, _) = player.single();
+    let (vp, _) = match player.iter().next() {
+        Some(t) => t,
+        None => return,
+    };
     let (mut needle, _) = speedo.single_mut();
 
     needle.rotation = Quat::from_rotation_z(vp.0.length() / 100.0);
