@@ -181,10 +181,9 @@ fn handle_ai_players(
     prefs: Res<Preferences>,
     mut gizmos: Gizmos,
 ) {
-    if guide.is_none() {
+    let Some(guide) = guide else {
         return;
-    }
-    let guide = guide.unwrap();
+    };
 
     let delta = time.delta_seconds();
 
