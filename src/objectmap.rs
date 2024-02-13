@@ -4,13 +4,12 @@
 #![allow(clippy::type_complexity)]
 
 use bevy::{
-    log,
     math::{vec2, vec3},
     prelude::*,
 };
 use std::f32::consts::PI;
 
-use crate::{geometry::Polygon, physics, tilemap, Player, Racer};
+use crate::{geometry::Polygon, physics, tilemap, LapCounter, Player, Racer};
 
 #[derive(Default)]
 pub struct Plugin;
@@ -51,37 +50,34 @@ fn spawn_objects(
     texture_atlas: &mut Assets<TextureAtlas>,
     asset_server: &AssetServer,
 ) {
-    let Some(layer) = map
-        .layers()
-        .find(|layer| layer.name == "Objects")
-        .and_then(|layer| layer.as_object_layer())
-    else {
-        return;
-    };
+    let mut shape_number = 0;
 
-    for object in layer.objects() {
-        let Some(tile_data) = object.tile_data() else {
-            log::error!("Tile data is missing");
-            continue;
-        };
+    for layer in map.layers().filter_map(|layer| layer.as_object_layer()) {
+        for obj in layer.objects() {
+            let Some(tile_data) = obj.tile_data() else {
+                spawn_shape(map, &obj, shape_number, commands);
+                shape_number += 1;
+                continue;
+            };
 
-        let tiled::TilesetLocation::Map(tileset) = tile_data.tileset_location() else {
-            log::error!("Tile data isn't using a map ID as the tileset location");
-            continue;
-        };
+            let tiled::TilesetLocation::Map(tileset) = tile_data.tileset_location() else {
+                error!("Tile data isn't using a map ID as the tileset location");
+                continue;
+            };
 
-        let id = tile_data.id();
-        let Some(tile) = map.tilesets()[*tileset].get_tile(id) else {
-            log::error!("Tile id missing from tile data");
-            continue;
-        };
+            let id = tile_data.id();
+            let Some(tile) = map.tilesets()[*tileset].get_tile(id) else {
+                error!("Tile id missing from tile data");
+                continue;
+            };
 
-        let Some(image) = &tile.image else {
-            log::error!("Tile image missing from tile data");
-            continue;
-        };
+            let Some(image) = &tile.image else {
+                error!("Tile image missing from tile data");
+                continue;
+            };
 
-        spawn_object(map, &object, image, commands, texture_atlas, asset_server);
+            spawn_object(map, &obj, image, commands, texture_atlas, asset_server);
+        }
     }
 }
 
@@ -149,6 +145,34 @@ fn spawn_object(
 
         if is_player {
             entity.insert(Player);
+        }
+    }
+}
+
+fn spawn_shape(map: &tiled::Map, obj: &tiled::Object, num: u32, commands: &mut Commands) {
+    match obj.shape {
+        tiled::ObjectShape::Rect { width, height } => {
+            let sz = vec2(width, height);
+            let bbox = Polygon::from_vec(&sz);
+
+            let translation = vec3(
+                obj.x - (((map.width * map.tile_width) as f32 - width as f32) / 2.0),
+                -obj.y + (((map.height * map.tile_height) as f32 + height as f32) / 2.0) - height,
+                0.0,
+            );
+            let rotation = Quat::from_rotation_z(-obj.rotation * PI / 4.0);
+            let shift = Vec3::from((sz / 2.0, 0.0));
+            let restore = rotation.mul_vec3(shift);
+            let transform = Transform {
+                translation: translation - shift + restore,
+                rotation,
+                scale: Vec3::ONE,
+            };
+
+            commands.spawn((LapCounter(1 << num), physics::ShapeBox(bbox), transform));
+        }
+        _ => {
+            error!("Unsupported shape: {:?}", (&obj.name, &obj.shape));
         }
     }
 }

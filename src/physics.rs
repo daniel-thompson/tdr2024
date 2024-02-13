@@ -18,6 +18,9 @@ pub struct Angle(pub f32);
 #[derive(Component, Clone, Debug)]
 pub struct CollisionBox(pub Polygon);
 
+#[derive(Component, Clone, Debug)]
+pub struct ShapeBox(pub Polygon);
+
 impl Angle {
     pub fn normalize(&mut self) {
         while self.0 > PI {

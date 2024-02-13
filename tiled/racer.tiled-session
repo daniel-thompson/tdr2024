@@ -1,5 +1,5 @@
 {
-    "activeFile": "level2.tmx",
+    "activeFile": "level1.tmx",
     "expandedProjectPaths": [
     ],
     "file.lastUsedOpenFilter": "All Files (*)",
@@ -29,19 +29,22 @@
             "expandedObjectLayers": [
                 9
             ],
-            "scale": 0.5,
+            "scale": 1.5058,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 1540,
-                "y": 1109
+                "x": 1689.4673927480408,
+                "y": 2047.748705007305
             }
         },
         "level2.tmx": {
-            "scale": 0.75,
+            "expandedObjectLayers": [
+                3
+            ],
+            "scale": 0.5354,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 1698.6666666666665,
-                "y": 726
+                "x": 1903.249906611879,
+                "y": 1392.4168845722825
             }
         },
         "level2.tmx#Asphalt road": {
@@ -49,7 +52,7 @@
         },
         "objects.tsx": {
             "dynamicWrapping": true,
-            "scaleInDock": 0.5,
+            "scaleInDock": 0.3224,
             "scaleInEditor": 1
         },
         "vehicles.tsx": {
@@ -67,8 +70,8 @@
     ],
     "project": "racer.tiled-project",
     "recentFiles": [
-        "level1.tmx",
         "level2.tmx",
+        "level1.tmx",
         "vehicles.tsx",
         "grass.tsx",
         "objects.tsx"

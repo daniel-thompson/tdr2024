@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="22" height="16" tilewidth="128" tileheight="128" infinite="0" nextlayerid="4" nextobjectid="9">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="22" height="16" tilewidth="128" tileheight="128" infinite="0" nextlayerid="4" nextobjectid="12">
  <editorsettings>
   <export target="../src/assets/level2.tmx" format="tmx"/>
  </editorsettings>
@@ -279,6 +279,7 @@
  <tileset firstgid="91" source="grass.tsx"/>
  <tileset firstgid="105" source="objects.tsx"/>
  <tileset firstgid="144" source="vehicles.tsx"/>
+ <tileset firstgid="169" source="asphalt_road.tsx"/>
  <layer id="2" name="Background" width="22" height="16">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -305,8 +306,8 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,8,9,4,4,4,4,4,4,4,4,4,4,4,4,10,11,0,0,
-0,0,0,0,26,27,40,40,40,40,40,40,40,40,40,40,40,40,28,29,0,0,
+0,0,0,0,8,9,4,4,4,4,4,255,4,4,4,4,4,4,10,11,0,0,
+0,0,0,0,26,27,40,40,40,40,40,257,40,40,40,40,40,40,28,29,0,0,
 0,0,0,0,21,23,0,0,0,0,0,0,0,0,0,0,0,0,21,23,0,0,
 0,0,0,0,21,23,0,0,0,0,0,0,0,0,0,0,0,0,21,23,0,0,
 0,0,0,0,21,23,0,0,0,0,0,0,0,0,0,0,0,0,21,23,0,0,
@@ -328,5 +329,8 @@
   <object id="6" gid="163" x="902.83" y="659.855" width="70" height="121" rotation="90"/>
   <object id="7" gid="166" x="1148.46" y="661.825" width="70" height="131" rotation="90"/>
   <object id="8" gid="149" x="1273.61" y="554.855" width="71" height="131" rotation="90"/>
+  <object id="9" name="lap_box" x="1406" y="380" width="128" height="512"/>
+  <object id="10" name="lap_box" x="2178" y="1406" width="128" height="512"/>
+  <object id="11" name="lap_box" x="768" y="1406" width="128" height="512"/>
  </objectgroup>
 </map>

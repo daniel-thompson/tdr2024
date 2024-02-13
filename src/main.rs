@@ -25,6 +25,10 @@ struct Preferences {
     #[arg(short, long, action = clap::ArgAction::Count)]
     debug: u8,
 
+    /// Keep the car still while the world revolves around you
+    #[arg(short, long)]
+    jenny_mode: bool,
+
     /// Jump to the selected level
     #[arg(short, long, default_value_t = 1)]
     level: u32,
@@ -83,6 +87,7 @@ fn main() {
             (
                 handle_keyboard,
                 handle_ai_players,
+                handle_lap_counter,
                 physics::apply_velocity
                     .after(handle_ai_players)
                     .after(handle_keyboard),
@@ -99,10 +104,17 @@ fn main() {
 }
 
 #[derive(Component, Debug)]
+struct LapCounter(u32);
+
+#[derive(Component, Debug)]
 struct Player;
 
 #[derive(Component, Debug, Default)]
 struct Racer {
+    lap_count: u32,
+    sub_count: u32,
+    start_finish: u32,
+
     penalty: f32,
     last_tile: Option<Vec2>,
 }
@@ -140,10 +152,13 @@ fn handle_keyboard(
 ) {
     let delta = time.delta_seconds();
 
-    let (mut a, mut v, mut t, mut r, _) = match query.iter_mut().next() {
-        Some(t) => t,
-        None => return,
+    let Some((mut a, mut v, mut t, mut r, _)) = query.iter_mut().next() else {
+        return;
     };
+
+    if r.lap_count >= 5 {
+        return;
+    }
 
     if r.penalty > 0.0 {
         r.penalty = if r.penalty < delta {
@@ -188,6 +203,9 @@ fn handle_ai_players(
     let delta = time.delta_seconds();
 
     for (mut a, mut v, mut t, mut r, _) in query.iter_mut() {
+        if r.lap_count >= 5 {
+            continue;
+        }
         if r.penalty > 0.0 {
             r.penalty = if r.penalty < delta {
                 0.0
@@ -240,15 +258,54 @@ fn handle_ai_players(
     }
 }
 
+fn handle_lap_counter(
+    checkpoints: Query<(&physics::ShapeBox, &LapCounter, &Transform)>,
+    mut cars: Query<(&physics::CollisionBox, &mut Racer, &Transform)>,
+    prefs: Res<Preferences>,
+    mut gizmos: Gizmos,
+) {
+    if prefs.debug_low() {
+        for (physics::ShapeBox(poly), _, xform) in checkpoints.iter() {
+            poly.transform(xform).draw(&mut gizmos);
+        }
+    }
+
+    let mask = checkpoints
+        .iter()
+        .map(|(_, c, _)| c.0)
+        .reduce(|a, b| a | b)
+        .unwrap_or(0);
+
+    for (physics::CollisionBox(poly), mut car, xform) in cars.iter_mut() {
+        let car_box = poly.transform(xform);
+
+        for (physics::ShapeBox(poly), LapCounter(bit), xform) in checkpoints.iter() {
+            if car_box.is_touching(&poly.transform(xform)) {
+                if car.start_finish == 0 {
+                    car.start_finish = *bit;
+                }
+                car.sub_count |= *bit;
+                if car.sub_count == mask && car.start_finish == *bit {
+                    car.lap_count += 1;
+                    car.sub_count = *bit;
+                }
+            }
+        }
+    }
+}
+
 fn track_player(
     player: Query<(&Transform, &physics::Velocity, With<Player>)>,
     mut camera: Query<(&mut Transform, With<Camera>, Without<Player>)>,
+    prefs: Res<Preferences>,
 ) {
     for (txp, _, _) in player.iter() {
         for (mut txc, _, _) in camera.iter_mut() {
             txc.translation.x = txp.translation.x;
             txc.translation.y = txp.translation.y;
-            //txc.rotation = txp.rotation;
+            if prefs.jenny_mode {
+                txc.rotation = txp.rotation;
+            }
         }
     }
 }

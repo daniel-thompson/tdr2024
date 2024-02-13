@@ -188,7 +188,7 @@ pub fn process_loaded_maps(
     for event in map_events.read() {
         match event {
             AssetEvent::Added { id } => {
-                log::info!("Map added!");
+                log::debug!("Map added!");
                 changed_maps.push(*id);
             }
             AssetEvent::Modified { id } => {
@@ -259,12 +259,16 @@ pub fn process_loaded_maps(
                         let offset_x = layer.offset_x;
                         let offset_y = layer.offset_y;
 
-                        let tiled::LayerType::Tiles(tile_layer) = layer.layer_type() else {
+                        let tile_layer = match layer.layer_type() {
+                            tiled::LayerType::Tiles(l) => l,
+                            tiled::LayerType::Objects(_) => continue,
+                            _ => {
                             log::info!(
                                 "Skipping layer {} (\"{}\") because only tile layers are supported.",
                                 layer.id(), layer.name
                             );
                             continue;
+                            },
                         };
 
                         let tiled::TileLayer::Finite(layer_data) = tile_layer else {

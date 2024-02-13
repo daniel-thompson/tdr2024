@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="38" height="24" tilewidth="128" tileheight="128" infinite="0" backgroundcolor="#27ae60" nextlayerid="10" nextobjectid="25">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="38" height="24" tilewidth="128" tileheight="128" infinite="0" backgroundcolor="#27ae60" nextlayerid="10" nextobjectid="33">
  <editorsettings>
   <export target="../src/assets/level1.tmx" format="tmx"/>
  </editorsettings>
@@ -80,5 +80,12 @@
   <object id="18" gid="267" x="1926.64" y="1300.33" width="70" height="121" rotation="90"/>
   <object id="19" gid="270" x="2172.27" y="1302.3" width="70" height="131" rotation="90"/>
   <object id="20" gid="253" x="2297.42" y="1195.33" width="71" height="131" rotation="90"/>
+  <object id="25" name="lap_box" x="2432" y="1024" width="128" height="512"/>
+  <object id="26" name="lap_box" x="1408" y="2048" width="128" height="512"/>
+  <object id="27" name="lap_box" x="3072" y="2048" width="128" height="512"/>
+  <object id="28" gid="215" x="2063.47" y="1904.75" width="210" height="62"/>
+  <object id="30" gid="216" x="2293.06" y="1905.09" width="210" height="62"/>
+  <object id="31" gid="242" x="1602.39" y="2125.52" width="214" height="212"/>
+  <object id="32" gid="242" x="984.778" y="2120.88" width="214" height="212"/>
  </objectgroup>
 </map>
