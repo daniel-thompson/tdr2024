@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2023-2024 Daniel Thompson
 
+use bevy::prelude::*;
 use std::convert::AsMut;
 use std::default::Default;
 
@@ -30,3 +31,10 @@ pub trait IteratorToArrayExt<T, U: Default + AsMut<[T]>>: Sized + Iterator<Item 
 }
 
 impl<T, U: Iterator<Item = T>, V: Default + AsMut<[T]>> IteratorToArrayExt<T, V> for U {}
+
+/// Recursively despawn all entities that match the generic parameter, T.
+pub fn despawn_entities<T: Component>(to_despawn: Query<Entity, With<T>>, mut commands: Commands) {
+    for entity in &to_despawn {
+        commands.entity(entity).despawn_recursive();
+    }
+}

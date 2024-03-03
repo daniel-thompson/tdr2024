@@ -22,6 +22,10 @@ impl bevy::prelude::Plugin for Plugin {
         embedded_asset!(app, p, "speeddial.png");
         embedded_asset!(app, p, "speedneedle.png");
 
+        embedded_asset!(app, p, "icons/exit_right.png");
+        embedded_asset!(app, p, "icons/right.png");
+        embedded_asset!(app, p, "icons/wrench.png");
+
         racepack_png!(app, p, "Cars/car_black_1.png");
         racepack_png!(app, p, "Cars/car_black_2.png");
         racepack_png!(app, p, "Cars/car_black_3.png");

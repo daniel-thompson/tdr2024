@@ -24,16 +24,19 @@ impl bevy::app::Plugin for Plugin {
 
 fn spawn_dashboard(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
-        .spawn(NodeBundle {
-            style: Style {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                left: Val::Percent(-40.0),
-                bottom: Val::Percent(-70.0),
+        .spawn((
+            Name::new("Speedometer"),
+            NodeBundle {
+                style: Style {
+                    width: Val::Percent(100.0),
+                    height: Val::Percent(100.0),
+                    left: Val::Percent(-40.0),
+                    bottom: Val::Percent(-70.0),
+                    ..default()
+                },
                 ..default()
             },
-            ..default()
-        })
+        ))
         .with_children(|parent| {
             parent
                 .spawn(NodeBundle {
@@ -92,16 +95,19 @@ fn spawn_dashboard(mut commands: Commands, asset_server: Res<AssetServer>) {
                 });
         });
     commands
-        .spawn(NodeBundle {
-            style: Style {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                left: Val::Percent(40.0),
-                bottom: Val::Percent(-75.0),
+        .spawn((
+            Name::new("LapCounter"),
+            NodeBundle {
+                style: Style {
+                    width: Val::Percent(100.0),
+                    height: Val::Percent(100.0),
+                    left: Val::Percent(40.0),
+                    bottom: Val::Percent(-75.0),
+                    ..default()
+                },
                 ..default()
             },
-            ..default()
-        })
+        ))
         .with_children(|parent| {
             parent
                 .spawn(NodeBundle {

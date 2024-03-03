@@ -3,7 +3,7 @@
 
 #![allow(clippy::type_complexity)]
 
-use bevy::{prelude::*, render::camera::ScalingMode, window};
+use bevy::{log, prelude::*, render::camera::ScalingMode, window};
 use bevy_ecs_tilemap::prelude as ecs_tilemap;
 use clap::Parser;
 use std::f32::consts::PI;
@@ -13,6 +13,7 @@ mod dashboard;
 mod editor;
 mod geometry;
 mod mapping;
+mod menu;
 mod objectmap;
 mod physics;
 mod tilemap;
@@ -63,10 +64,6 @@ fn main() {
                     } else {
                         window::WindowMode::BorderlessFullscreen
                     },
-                    cursor: window::Cursor {
-                        visible: false,
-                        ..default()
-                    },
                     ..default()
                 }),
                 ..default()
@@ -75,27 +72,39 @@ fn main() {
             editor::Plugin,
             ecs_tilemap::TilemapPlugin,
             mapping::Plugin,
+            menu::MenuPlugin,
             objectmap::Plugin,
             tilemap::TiledMapPlugin,
             dashboard::Plugin,
         ))
         .insert_resource(ClearColor(Color::rgb_linear(0.153, 0.682, 0.376)))
         .insert_resource(args)
-        .add_systems(Startup, (load_maps, spawn_camera))
+        .add_systems(Startup, (spawn_camera, load_maps))
+        .add_systems(OnEnter(GameState::Game), hide_cursor)
+        .add_systems(
+            OnEnter(GameState::NextLevel),
+            (
+                despawn_level,
+                load_maps.after(despawn_level),
+                set_game_state,
+            ),
+        )
+        .add_systems(OnEnter(GameState::Menu), show_cursor)
         .add_systems(
             Update,
             (
-                handle_keyboard,
-                handle_ai_players,
+                trigger_menu,
+                handle_human_player.run_if(in_state(GameState::Game)),
+                handle_ai_players.run_if(in_state(GameState::Game)),
                 handle_lap_counter,
                 physics::apply_velocity
                     .after(handle_ai_players)
-                    .after(handle_keyboard),
+                    .after(handle_human_player),
                 physics::apply_friction.after(physics::apply_velocity),
                 track_player.after(physics::apply_velocity),
                 physics::collision_detection
                     .after(physics::apply_velocity)
-                    .after(handle_keyboard)
+                    .after(handle_human_player)
                     .after(handle_ai_players),
                 physics::fixed_collision_detection.after(physics::collision_detection),
             ),
@@ -103,8 +112,35 @@ fn main() {
         .run();
 }
 
+pub fn despawn_query<T: Component>(q: Query<Entity, With<T>>, commands: &mut Commands) {
+    for entity in &q {
+        log::debug!("Despawning {entity:?}");
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
+fn despawn_level(level_entities: Query<Entity, With<LevelComponent>>, mut commands: Commands) {
+    log::info!("Despawning current level");
+    despawn_query(level_entities, &mut commands);
+}
+
+fn show_cursor(mut q: Query<&mut Window>) {
+    for mut w in q.iter_mut() {
+        w.cursor.visible = true;
+    }
+}
+
+fn hide_cursor(mut q: Query<&mut Window>) {
+    for mut w in q.iter_mut() {
+        w.cursor.visible = false;
+    }
+}
+
 #[derive(Component, Debug)]
 struct LapCounter(u32);
+
+#[derive(Component, Debug)]
+struct LevelComponent;
 
 #[derive(Component, Debug)]
 struct Player;
@@ -129,17 +165,39 @@ fn spawn_camera(mut commands: Commands) {
     commands.spawn(camera);
 }
 
-fn load_maps(mut commands: Commands, asset_server: Res<AssetServer>, prefs: Res<Preferences>) {
-    let p = format!("embedded://tdr2024/assets/level{}.tmx", prefs.level);
-    let map_handle: Handle<tilemap::TiledMap> = asset_server.load(p);
+fn load_maps(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut prefs: ResMut<Preferences>,
+) {
+    let name = format!("level{}", prefs.level);
+    log::info!("Spawning objects for {name}");
+    prefs.level = if prefs.level == 2 { 1 } else { prefs.level + 1 };
 
-    commands.spawn(tilemap::TiledMapBundle {
-        tiled_map: map_handle,
-        ..default()
-    });
+    let map_handle: Handle<tilemap::TiledMap> =
+        asset_server.load(format!("embedded://tdr2024/assets/{name}.tmx"));
+
+    commands.spawn((
+        LevelComponent,
+        Name::new(name),
+        tilemap::TiledMapBundle {
+            tiled_map: map_handle,
+            ..default()
+        },
+    ));
 }
 
-fn handle_keyboard(
+fn set_game_state(mut game_state: ResMut<NextState<GameState>>) {
+    game_state.set(GameState::Game);
+}
+
+fn trigger_menu(input: Res<Input<KeyCode>>, mut game_state: ResMut<NextState<GameState>>) {
+    if input.pressed(KeyCode::Escape) {
+        game_state.set(GameState::Menu);
+    }
+}
+
+fn handle_human_player(
     mut query: Query<(
         &mut physics::Angle,
         &mut physics::Velocity,
@@ -149,6 +207,7 @@ fn handle_keyboard(
     )>,
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
+    mut game_state: ResMut<NextState<GameState>>,
 ) {
     let delta = time.delta_seconds();
 
@@ -157,6 +216,7 @@ fn handle_keyboard(
     };
 
     if r.lap_count >= 5 {
+        game_state.set(GameState::Menu);
         return;
     }
 
@@ -176,7 +236,7 @@ fn handle_keyboard(
         a.0 -= delta * 3.0;
     }
     if input.pressed(KeyCode::ShiftRight) || input.pressed(KeyCode::ShiftLeft) {
-        v.0 += delta * 580.0 * Vec2::from_angle(a.0);
+        v.0 += delta * 560.0 * Vec2::from_angle(a.0);
     }
 
     a.normalize();
@@ -250,7 +310,7 @@ fn handle_ai_players(
         }
 
         if front_pixel > 50 {
-            v.0 += delta * 600.0 * Vec2::from_angle(a.0);
+            v.0 += delta * 580.0 * Vec2::from_angle(a.0);
         }
 
         a.normalize();
@@ -308,4 +368,12 @@ fn track_player(
             }
         }
     }
+}
+
+#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
+enum GameState {
+    Game,
+    NextLevel,
+    #[default]
+    Menu,
 }

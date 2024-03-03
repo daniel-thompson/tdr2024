@@ -18,6 +18,8 @@ use std::sync::Arc;
 
 use bevy::{
     asset::{io::Reader, AssetLoader, AssetPath, AsyncReadExt},
+    core::Name,
+    hierarchy::BuildChildren,
     log,
     prelude::{
         Added, Asset, AssetApp, AssetEvent, AssetId, Assets, Bundle, Commands, Component,
@@ -28,6 +30,7 @@ use bevy::{
     utils::{BoxedFuture, HashMap},
 };
 use bevy_ecs_tilemap::prelude::*;
+use crate::LevelComponent;
 
 use thiserror::Error;
 
@@ -188,7 +191,7 @@ pub fn process_loaded_maps(
     for event in map_events.read() {
         match event {
             AssetEvent::Added { id } => {
-                log::debug!("Map added!");
+                log::info!("Map added!");
                 changed_maps.push(*id);
             }
             AssetEvent::Modified { id } => {
@@ -303,7 +306,7 @@ pub fn process_loaded_maps(
                         };
 
                         let mut tile_storage = TileStorage::empty(map_size);
-                        let layer_entity = commands.spawn_empty().id();
+                        let layer_entity = commands.spawn((Name::new("TileLayer"), LevelComponent)).id();
 
                         for x in 0..map_size.x {
                             for y in 0..map_size.y {
@@ -338,6 +341,7 @@ pub fn process_loaded_maps(
                                     _ => unreachable!()
                                 };
 
+                                log::debug!("Spawning new tile at {x},{y}");
                                 let tile_pos = TilePos { x, y };
                                 let tile_entity = commands
                                     .spawn(TileBundle {
@@ -353,6 +357,8 @@ pub fn process_loaded_maps(
                                     })
                                     .id();
                                 tile_storage.set(&tile_pos, tile_entity);
+                                commands.entity(layer_entity).add_child(tile_entity);
+
                             }
                         }
 

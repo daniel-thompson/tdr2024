@@ -4,12 +4,13 @@
 #![allow(clippy::type_complexity)]
 
 use bevy::{
+    log,
     math::{vec2, vec3},
     prelude::*,
 };
 use std::f32::consts::PI;
 
-use crate::{geometry::Polygon, physics, tilemap, LapCounter, Player, Racer};
+use crate::{geometry::Polygon, physics, tilemap, LapCounter, LevelComponent, Player, Racer};
 
 #[derive(Default)]
 pub struct Plugin;
@@ -28,6 +29,7 @@ pub fn handle_map_events(
     asset_server: Res<AssetServer>,
 ) {
     for event in map_events.read() {
+        log::info!("{:?}", &event);
         match event {
             AssetEvent::Added { id } => {
                 if let Some(map) = maps.get(*id) {
@@ -124,6 +126,7 @@ fn spawn_object(
 
     let handle = asset_server.load(path.to_str().expect("tile_path is not UTF-8").to_string());
     let mut entity = commands.spawn((
+        LevelComponent,
         physics::CollisionBox(polygon),
         SpriteSheetBundle {
             texture_atlas: texture_atlas.add(TextureAtlas::from_grid(handle, sz, 1, 1, None, None)),
@@ -140,12 +143,16 @@ fn spawn_object(
         entity.insert((
             Racer::default(),
             physics::Angle((90.0 - obj.rotation) * PI / 4.0),
-            physics::Velocity(Vec2::new(0.0, 20.0)),
+            physics::Velocity(Vec2::new(0.0, 0.0)),
         ));
 
         if is_player {
-            entity.insert(Player);
+            entity.insert((Name::new("Human"), Player));
+        } else {
+            entity.insert(Name::new("AI"));
         }
+    } else {
+        entity.insert(Name::new("Scenery"));
     }
 }
 
@@ -169,7 +176,13 @@ fn spawn_shape(map: &tiled::Map, obj: &tiled::Object, num: u32, commands: &mut C
                 scale: Vec3::ONE,
             };
 
-            commands.spawn((LapCounter(1 << num), physics::ShapeBox(bbox), transform));
+            commands.spawn((
+                Name::new("Checkpoint"),
+                LapCounter(1 << num),
+                LevelComponent,
+                physics::ShapeBox(bbox),
+                transform,
+            ));
         }
         _ => {
             error!("Unsupported shape: {:?}", (&obj.name, &obj.shape));
